@@ -1,31 +1,75 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
 const hre = require("hardhat");
+require('dotenv').config();
 
-async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
-
-  const lockedAmount = hre.ethers.utils.parseEther("0.001");
-
-  const Lock = await hre.ethers.getContractFactory("Lock");
-  const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
-
-  await lock.deployed();
-
-  console.log(
-    `Lock with ${ethers.utils.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`
-  );
+function timeout(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
+async function main() {
+
+  // DEPLOY TOKEN
+  const name = "Digitra.com";
+  const symbol = "DGTA";
+  const Token = await hre.ethers.getContractFactory("Token");
+  const token = await Token.deploy(name, symbol);
+  await token.deployed();
+  console.log(`Token deployed to ${token.address}`);
+
+  if (process.env.VERIFY_ON_ETHERSCAN) {
+    // PAUSE
+    console.log(`Pause 30 sec...`)
+    await timeout(30000);
+    // VERIFY on ETHERSCAN
+    console.log(`Verifying Token on Etherscan...`);
+    try {
+      await hre.run(`verify:verify`, {
+        address: token.address,
+        constructorArguments: [name, symbol],
+      });
+    } catch (error) {
+        console.error('error: ', error);
+    }
+  }
+  // TRANSFER_OWNERSHIP
+  const newOwner = process.env.NEW_OWNER;
+  if (process.env.TRANSFER_OWNERSHIP) {
+    await token.grantAdminRole(newOwner);
+    console.log(`Admin role for Token contract granted to: ${newOwner}`);
+    const amount = token.balanceOf(process.env.DEPLORER_ADDR);
+    await token.transfer(newOwner, amount);
+    console.log(`Send: ${amount} tokens to: ${newOwner}`);
+  }
+
+
+  // DEPLOY VESTING
+  const Vesting = await hre.ethers.getContractFactory("Vesting");
+  const vesting = await Vesting.deploy(token.address);
+  await vesting.deployed();
+  console.log(`Vesting deployed to ${vesting.address}`);
+
+  if (process.env.VERIFY_ON_ETHERSCAN) {
+    // PAUSE
+    console.log(`Pause 30 sec...`)
+    await timeout(30000);
+    // VERIFY on ETHERSCAN
+    console.log(`Verifying Vesting on Etherscan...`);
+    try {
+      await hre.run(`verify:verify`, {
+        address: vesting.address,
+        constructorArguments: [token.address],
+      });
+    } catch (error) {
+        console.error('error: ', error);
+    }
+  }
+  // TRANSFER_OWNERSHIP
+  if (process.env.TRANSFER_OWNERSHIP) {
+    await token.grantAdminRole(newOwner);
+    console.log(`Admin role for Vesting contract granted to: ${newOwner}`);
+  }
+
+}
+
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
