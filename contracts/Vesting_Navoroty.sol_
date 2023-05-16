@@ -1,62 +1,59 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title Vesting
  */
 contract Vesting is ReentrancyGuard, AccessControl {
-    using SafeERC20 for IERC20;
 
     // Investor data structure. Mapping from these structures is stored in the contract, it is filled before the start of vesting
     struct InvestorData {
         bool cliffPaid;
+        uint8 phaseID; // ID of the vesting phase, for each phase set a unique number
         address investor; // investor address
         uint256 amount; // amount of tokens to be released at the end of the vesting except for amount paid after the cliff
         uint256 released; // amount of tokens released
         uint256 amountAfterCliff; // amount paid after cliff, must be calculated outside the contract from the percentage (cliffPercent)
-        uint256 phaseID; // ID of the vesting phase, for each phase set a unique number outside the contract
     }
 
     // The structure of the vesting phases. Mapping from these structures is stored in the contract, it is filled before the start of vesting
     struct VestingPhase {
-        uint256 start; // start time of the vesting period
-        uint256 duration; // duration of the vesting period arter cliff in seconds (total duration - cliff)
-        uint256 cliff; // cliff period in seconds
-        uint256 cliffPercent; // % after cliff period (multiply by 10, because could be fractional percentage, like - 7.5)
-        uint256 slicePeriodSeconds; // duration of a slice period in seconds
-        string phaseName; // name of the vesting phase
+        uint32 start; // start time of the vesting period
+        uint32 duration; // duration of the vesting period arter cliff in seconds (total duration - cliff)
+        uint32 cliff; // cliff period in seconds
+        uint32 cliffPercent; // % after cliff period (multiply by 10, because could be fractional percentage, like - 7.5)
+        uint32 slicePeriodSeconds; // duration of a slice period in seconds
     }
 
     // The full structure of vesting in the context of the investor. Not stored in the contract, but returned upon request from the web application
     struct VestingSchedule {
         bool cliffPaid;
+        uint8 phaseID; // ID of the vesting phase
         address investor; // investor address
-        uint256 cliff; // cliff period in seconds
-        uint256 cliffPercent; // % after cliff period (multiply by 10, because could be fractional percentage, like - 7,5)
+        uint32 cliff; // cliff period in seconds
+        uint32 cliffPercent; // % after cliff period (multiply by 10, because could be fractional percentage, like - 7,5)
+        // next slot
+        uint32 start; // start time of the vesting period
+        uint32 duration; // duration of the vesting period arter cliff in seconds
+        uint32 slicePeriodSeconds; // duration of a slice period for the vesting in seconds
+        // next slots
         uint256 amountAfterCliff; // amount paid after cliff
-        uint256 start; // start time of the vesting period
-        uint256 duration; // duration of the vesting period arter cliff in seconds
-        uint256 slicePeriodSeconds; // duration of a slice period for the vesting in seconds
         uint256 amount; // amount of tokens to be released at the end of the vesting except for percentages after the cliff
         uint256 released; // amount of tokens released exept cliff percent
         uint256 releasedTotal; // total amount of tokens released with cliff percent
         uint256 releasableAmount; // amount of tokens ready for release now
-        uint256 phaseID; // ID of the vesting phase
-        string phaseName; // name of the vesting phase
     }
 
-    IERC20 private immutable _token;
+    address public tokenAddress;
     // Create a new role identifier for the admin role
     bytes32 public constant STAGE_ADJUSTMENT_ROLE =
         keccak256("STAGE_ADJUSTMENT_ROLE");
     mapping(bytes32 => InvestorData) private investorsData;
     mapping(uint256 => VestingPhase) private vestingPhases;
-    uint256 private vestingTotalAmount;
+    uint256 public vestingTotalAmount;
     mapping(address => uint256) private holdersVestingCount;
 
     event Released(address indexed investor, uint256 amount);
@@ -83,24 +80,12 @@ contract Vesting is ReentrancyGuard, AccessControl {
 
     /**
      * @dev Creates a vesting contract.
-     * @param token_ address of the IERC20/BEP20 token contract
+     * @param _token address of the IERC20/BEP20 token contract
      */
-    constructor(address token_) {
-        require(token_ != address(0x0));
-        _token = IERC20(token_);
+    constructor(address _token) {
+        require(_token != address(0x0));
+        tokenAddress = IERC20(_token);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
-
-    receive() external payable {}
-
-    fallback() external payable {}
-
-    /**
-     * @notice Returns the total amount of vesting.
-     * @return the total amount of vesting
-     */
-    function getvestingTotalAmount() external view returns (uint256) {
-        return vestingTotalAmount;
     }
 
     /**
@@ -161,8 +146,7 @@ contract Vesting is ReentrancyGuard, AccessControl {
                 investorData.released,
                 releasedTotal,
                 _computeReleasableAmount(investorData),
-                investorData.phaseID,
-                vestingPhase.phaseName
+                investorData.phaseID
             );
     }
 
@@ -190,13 +174,6 @@ contract Vesting is ReentrancyGuard, AccessControl {
     }
 
     /**
-     * @dev Returns the address of the IERC20/BEP20 token managed by the vesting contract.
-     */
-    function getToken() external view returns (address) {
-        return address(_token);
-    }
-
-    /**
      * @notice Creates a new vesting phase.
      * @param _phaseId ID of vesting phase
      * @param _start start time of the vesting period
@@ -207,26 +184,24 @@ contract Vesting is ReentrancyGuard, AccessControl {
      * @param _phaseName name of the vesting phase
      */
     function createVestingPhase(
-        uint256 _phaseId,
-        uint256 _start,
-        uint256 _duration,
-        uint256 _cliff,
-        uint256 _cliffPercent,
-        uint256 _slicePeriodSeconds,
-        string memory _phaseName
+        uint256_phaseId,
+        uint32 _start,
+        uint32 _duration,
+        uint32 _cliff,
+        uint32 _cliffPercent,
+        uint32 _slicePeriodSeconds
     ) external onlyAdminOrSA {
         require(_duration >= 0, "Vesting: duration must be >= 0");
         require(
-            _slicePeriodSeconds >= 1,
-            "Vesting: slicePeriodSeconds must be >= 1"
+            _slicePeriodSeconds > 0,
+            "Vesting: slicePeriodSeconds must be > 0"
         );
         vestingPhases[_phaseId] = VestingPhase(
             _start,
             _duration,
             _start + _cliff,
             _cliffPercent,
-            _slicePeriodSeconds,
-            _phaseName
+            _slicePeriodSeconds
         );
     }
 
@@ -242,17 +217,17 @@ contract Vesting is ReentrancyGuard, AccessControl {
      */
     function changeVestingPhase(
         uint256 _phaseId,
-        uint256 _start,
-        uint256 _duration,
-        uint256 _cliff,
-        uint256 _cliffPercent,
-        uint256 _slicePeriodSeconds,
+        uint32 _start,
+        uint32 _duration,
+        uint32 _cliff,
+        uint32 _cliffPercent,
+        uint32 _slicePeriodSeconds,
         string memory _phaseName
     ) external onlyAdminOrSA {
-        require(_duration >= 0, "Vesting: duration must be >= 0");
+        require(_duration > 0, "Vesting: duration must be > 0");
         require(
-            _slicePeriodSeconds >= 1,
-            "Vesting: slicePeriodSeconds must be >= 1"
+            _slicePeriodSeconds > 0,
+            "Vesting: slicePeriodSeconds must be > 0"
         );
         VestingPhase storage vestingPhase = vestingPhases[_phaseId];
         vestingPhase.start = _start;
@@ -260,7 +235,6 @@ contract Vesting is ReentrancyGuard, AccessControl {
         vestingPhase.cliff = _start + _cliff;
         vestingPhase.cliffPercent = _cliffPercent;
         vestingPhase.slicePeriodSeconds = _slicePeriodSeconds;
-        vestingPhase.phaseName = _phaseName;
     }
 
     /**
@@ -271,24 +245,25 @@ contract Vesting is ReentrancyGuard, AccessControl {
      * @param _phaseID ID of the vesting phase
      */
     function addInvestor(
+        uint8 _phaseID,
         address _investor,
         uint256 _amount,
-        uint256 _cliffPercent,
-        uint256 _phaseID
+        uint256 _cliffPercent
     ) external onlyAdminOrSA {
         require(_amount > 0, "Vesting: amount must be > 0");
         bytes32 investorDataId = computeNextinvestorDataIdForHolder(_investor);
-        uint256 _amountAfterCliff = (_amount * _cliffPercent) / 1000;
+        uint256 _amountAfterCliff = (_amount * uint256(_cliffPercent)) / 1000;
 
         investorsData[investorDataId] = InvestorData(
             false,
+            _phaseID
             _investor,
             _amount - _amountAfterCliff,
             0,
-            _amountAfterCliff,
-            _phaseID
+            _amountAfterCliff
+            
         );
-        vestingTotalAmount = vestingTotalAmount + _amount;
+        vestingTotalAmount += _amount;
         holdersVestingCount[_investor] += 1;
     }
 
@@ -301,10 +276,7 @@ contract Vesting is ReentrancyGuard, AccessControl {
         onlyAdminOrSA
     {
         InvestorData storage investorData = investorsData[investorDataId];
-        vestingTotalAmount =
-            vestingTotalAmount -
-            ((investorData.amount + investorData.amountAfterCliff) -
-                investorData.released);
+        vestingTotalAmount -= ((investorData.amount + investorData.amountAfterCliff) - investorData.released);
         investorData.amount = 0;
         investorData.amountAfterCliff = 0;
         investorData.cliffPaid = true;
@@ -324,10 +296,10 @@ contract Vesting is ReentrancyGuard, AccessControl {
         bool _cliffPaid,
         uint256 _amount,
         uint256 _released,
-        uint256 _cliffPercent,
-        uint256 _phaseID
+        uint32 _cliffPercent,
+        uint8 _phaseID
     ) external onlyAdminOrSA {
-        uint256 _amountAfterCliff = (_amount * _cliffPercent) / 1000;
+        uint256 _amountAfterCliff = (_amount * uint256(_cliffPercent)) / 1000;
         InvestorData storage investorData = investorsData[investorDataId];
 
         if (_released == 0) {
@@ -337,10 +309,7 @@ contract Vesting is ReentrancyGuard, AccessControl {
             _phaseID = investorData.phaseID;
         }
 
-        vestingTotalAmount =
-            vestingTotalAmount -
-            ((investorData.amount + investorData.amountAfterCliff) -
-                investorData.released);
+        vestingTotalAmount -= ((investorData.amount + investorData.amountAfterCliff) - investorData.released);
 
         investorData.cliffPaid = _cliffPaid;
         investorData.amount = _amount - _amountAfterCliff;
@@ -360,7 +329,7 @@ contract Vesting is ReentrancyGuard, AccessControl {
             hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
             "Caller is not an admin"
         );
-        _token.safeTransfer(msg.sender, amount);
+        _safeTransfer(tokenAddress, msg.sender, amount);
     }
 
     /**
@@ -392,11 +361,10 @@ contract Vesting is ReentrancyGuard, AccessControl {
                     (investorData.released + amount) -
                     investorData.amountAfterCliff;
             }
-            vestingTotalAmount = vestingTotalAmount - amount;
+            vestingTotalAmount -= amount;
             investorData.cliffPaid = true;
-            address payable investorPayable = payable(investorData.investor);
 
-            _token.safeTransfer(investorPayable, amount);
+            _safeTransfer(tokenAddress, payable(investorData.investor), amount);
 
             emit Released(investorData.investor, amount);
         }
@@ -433,7 +401,8 @@ contract Vesting is ReentrancyGuard, AccessControl {
      * @return the amount of tokens
      */
     function getWithdrawableAmount() external view returns (uint256) {
-        return _token.balanceOf(address(this)) - vestingTotalAmount;
+        return _balanceOf(address(this)) - vestingTotalAmount;
+        
     }
 
     /**
@@ -462,14 +431,6 @@ contract Vesting is ReentrancyGuard, AccessControl {
         returns (VestingPhase memory)
     {
         return vestingPhases[_phaseID];
-    }
-
-    /**
-     * @dev Get current timestamp in seconds.
-     * @return current timestamp
-     */
-    function getCurrentTime() internal view virtual returns (uint256) {
-        return block.timestamp;
     }
 
     /**
@@ -503,7 +464,7 @@ contract Vesting is ReentrancyGuard, AccessControl {
         view
         returns (uint256)
     {
-        uint256 currentTime = getCurrentTime();
+        uint32 currentTime = block.timestamp;
         VestingPhase memory vestingPhase = vestingPhases[investorData.phaseID];
 
         if (
@@ -517,12 +478,11 @@ contract Vesting is ReentrancyGuard, AccessControl {
             // Токены инвестор заберет все по итогу, только отображение не корректное и 2 транзакции нужно.
             // В этом случае нужно добавлять amountAfterCliff к возвращаемой сумме и все будет хорошо.
         } else {
-            uint256 timeFromStart = currentTime - vestingPhase.cliff;
-            uint256 secondsPerSlice = vestingPhase.slicePeriodSeconds;
-            uint256 vestedSlicePeriods = timeFromStart / secondsPerSlice;
-            uint256 vestedSeconds = vestedSlicePeriods * secondsPerSlice;
-            uint256 vestedAmount = (investorData.amount * vestedSeconds) /
-                vestingPhase.duration;
+            uint32 timeFromStart = currentTime - vestingPhase.cliff;
+            uint32 secondsPerSlice = vestingPhase.slicePeriodSeconds;
+            uint32 vestedSlicePeriods = timeFromStart / secondsPerSlice;
+            uint32 vestedSeconds = vestedSlicePeriods * secondsPerSlice;
+            uint256 vestedAmount = (investorData.amount * uint256(vestedSeconds)) / uint256(vestingPhase.duration);
             if (investorData.cliffPaid) {
                 vestedAmount = vestedAmount - investorData.released;
             } else {
@@ -531,4 +491,25 @@ contract Vesting is ReentrancyGuard, AccessControl {
             return vestedAmount;
         }
     }
+
+    function _safeTransfer(
+        address token,
+        address to,
+        uint256 value
+    ) internal {
+        // Transfer selector `bytes4(keccak256(bytes('transfer(address,uint256)')))` should be equal to 0xa9059cbb
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(0xa9059cbb, to, value)
+        );
+        require(
+            success && (data.length == 0 || abi.decode(data, (bool))),
+            "TRANSFER_FAILED"
+        );
+    }
+
+    function _balanceOf(address investor) internal returns(uint) {
+        // balanceOf selector `bytes4(keccak256('balanceOf(address)'))` should be equal to 0xa9059cbb
+        return token.call(abi.encodeWithSelector(0x70a08231, investor));
+    }
+
 }

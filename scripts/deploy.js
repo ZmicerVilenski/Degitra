@@ -15,7 +15,8 @@ async function main() {
   await token.deployed();
   console.log(`Token deployed to ${token.address}`);
 
-  if (process.env.VERIFY_ON_ETHERSCAN) {
+  const verify = (process.env.VERIFY_ON_ETHERSCAN.toLowerCase() === 'true');
+  if (verify) {
     // PAUSE
     console.log(`Pause 30 sec...`)
     await timeout(30000);
@@ -32,7 +33,8 @@ async function main() {
   }
   // TRANSFER_OWNERSHIP
   const newOwner = process.env.NEW_OWNER;
-  if (process.env.TRANSFER_OWNERSHIP) {
+  const transOwnerShip = (process.env.TRANSFER_OWNERSHIP.toLowerCase() === 'true');
+  if (transOwnerShip) {
     await token.grantAdminRole(newOwner);
     console.log(`Admin role for Token contract granted to: ${newOwner}`);
     const amount = token.balanceOf(process.env.DEPLORER_ADDR);
@@ -42,12 +44,12 @@ async function main() {
 
 
   // DEPLOY VESTING
-  const Vesting = await hre.ethers.getContractFactory("Vesting");
+  const Vesting = await hre.ethers.getContractFactory("TokenVesting");
   const vesting = await Vesting.deploy(token.address);
   await vesting.deployed();
   console.log(`Vesting deployed to ${vesting.address}`);
 
-  if (process.env.VERIFY_ON_ETHERSCAN) {
+  if (verify) {
     // PAUSE
     console.log(`Pause 30 sec...`)
     await timeout(30000);
@@ -63,7 +65,7 @@ async function main() {
     }
   }
   // TRANSFER_OWNERSHIP
-  if (process.env.TRANSFER_OWNERSHIP) {
+  if (transOwnerShip) {
     await token.grantAdminRole(newOwner);
     console.log(`Admin role for Vesting contract granted to: ${newOwner}`);
   }

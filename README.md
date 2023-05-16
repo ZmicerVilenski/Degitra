@@ -11,3 +11,9 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat run scripts/deploy.js
 ```
+
+Deploy & Verify with new deploy-script
+
+```shell
+npx hardhat run scripts/deploy.js --network sepolia
+```
