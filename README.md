@@ -12,8 +12,20 @@ npx hardhat node
 npx hardhat run scripts/deploy.js
 ```
 
-Deploy & Verify with new deploy-script
+1. Before deploy in mainnet fill variables in .env file:
+VERIFY_ON_ETHERSCAN=true
+TRANSFER_OWNERSHIP=true
+
+2. Deploy & Verify with new deploy-script
 
 ```shell
 npx hardhat run scripts/deploy.js --network sepolia
+```
+
+3. Fill variable - VESTING_ADDRESS in .env file
+
+4. Add vesting schedules in to Vesting contract
+
+```shell
+npx hardhat run --network sepolia ./scripts/fillVesting.js
 ```

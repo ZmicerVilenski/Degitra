@@ -1,93 +1,14 @@
 phases:
-  - round_name: SEED
-    phase_index: 0
-    starting_at: 2022-04-03T16:00:00+00:00 # Time when launch the vesting period
-    cliff:
-      delay: 6 # minutes
-      percent: 5
-    slice:
-      periods: 12
-      interval: 5 # minutes per each interval
-    accounts:
-      - address: "0x84EFdA9e7A2b32f4ef6692FDC1316Bcf668EBC63"
-        tokens: 12632000
-      - address: "0xBFF76e3d07A045D92a8CD9ab3471E4874d52F102"
-        tokens: 150000.64
-      - address: "0x9D1c2bEE22d96Ddc9C9Dddb6f0Fcd66E76261cd9"
-        tokens: 15000000
-      - address: "0xBA9a7Cf70F6861652cC909F968216BbA05B0DE5c"
-        tokens: 10000000
-      - address: "0x140dA41afB80005faD9955d747101A012132cFAe"
-        tokens: 35000000
+  - round_name: Long-term reserve
+    beneficiary: "0x84EFdA9e7A2b32f4ef6692FDC1316Bcf668EBC63"
+    durationDays: 1050
+    cliffDays: 30
+    amountTotal: 74668025 #(76,864,143 - 2,196,118)
+    amountAfterCliff: 2196118
 
-  - round_name: PRIVATE A 1
-    phase_index: 1
-    starting_at: 2022-04-03T16:00:00+00:00 # Time when launch the vesting period
-    cliff:
-      delay: 0 # minutes
-      percent: 0
-    slice:
-      periods: 1
-      interval: 3 # minutes per each interval
-    accounts:
-      - address: "0x84EFdA9e7A2b32f4ef6692FDC1316Bcf668EBC63"
-        tokens: 15000000
-      - address: "0xBFF76e3d07A045D92a8CD9ab3471E4874d52F102"
-        tokens: 17642.676 # 7.5 percent of 235235.68
-      - address: "0xeEF88Be01E63E25e9B880c381429B160bb87E5A7"
-        tokens: 10000000
-      - address: "0x866BeecAf3Ef61D60581dE2666Ec70F644d4506D"
-        tokens: 5000000
-      - address: "0x8732037991bC2D88C6764F1eeDD3879bf4DF87a9"
-        tokens: 5500000
-
-  - round_name: PRIVATE A 2
-    phase_index: 2
-    starting_at: 2022-04-03T16:00:00+00:00 # Time when launch the vesting period
-    cliff:
-      delay: 7 # minutes
-      percent: 0
-    slice:
-      periods: 11
-      interval: 5 # minutes per each interval
-    accounts:
-      - address: "0x84EFdA9e7A2b32f4ef6692FDC1316Bcf668EBC63"
-        tokens: 15000000
-      - address: "0xBFF76e3d07A045D92a8CD9ab3471E4874d52F102"
-        tokens: 217593.004 # Rest (100% - 7.5%) of 235235.68
-      - address: "0xeEF88Be01E63E25e9B880c381429B160bb87E5A7"
-        tokens: 10000000
-      - address: "0x866BeecAf3Ef61D60581dE2666Ec70F644d4506D"
-        tokens: 5000000
-      - address: "0x8732037991bC2D88C6764F1eeDD3879bf4DF87a9"
-        tokens: 5500000
-
-  - round_name: PRIVATE B
-    phase_index: 3
-    starting_at: 2022-04-03T16:00:00+00:00 # Time when launch the vesting period
-    cliff:
-      delay: 2 # minutes
-      percent: 10
-    slice:
-      periods: 10
-      interval: 5 # minutes per each interval
-    accounts:
-      - address: "0x84EFdA9e7A2b32f4ef6692FDC1316Bcf668EBC63"
-        tokens: 30000000
-      - address: "0xBFF76e3d07A045D92a8CD9ab3471E4874d52F102"
-        tokens: 1001250.22
-
-  - round_name: IDO
-    phase_index: 4
-    starting_at: 2022-04-03T16:00:00+00:00 # Time when launch the vesting period
-    cliff:
-      delay: 0 # minutes
-      percent: 20
-    slice:
-      periods: 8
-      interval: 3 # minutes per each interval
-    accounts:
-      - address: '0x140dA41afB80005faD9955d747101A012132cFAe'
-        tokens: 115384.62
-      - address: "0x84EFdA9e7A2b32f4ef6692FDC1316Bcf668EBC63"
-        tokens: 7000000
+  - round_name: Private Sale (Seed)
+    beneficiary: "0x4a31dd93cdfe632a2823f97eb57d3f091744f128"
+    durationDays: 690
+    cliffDays: 0
+    amountTotal: 6428571 #(7,142,857 - 714,286)
+    amountAfterCliff: 714286
