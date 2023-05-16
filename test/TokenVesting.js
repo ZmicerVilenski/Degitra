@@ -5,202 +5,182 @@ const {
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 require('dotenv').config();
+const fs = require('fs');
+const YAML = require('yaml');
 
-describe("Aqualis Staking", function () {
+describe("Digitra Token & Vesting", function () {
 
-  let aqualisToken, aqualisStaking, account0, account1, account2;
+  let token, vesting, phases, admin, accounts, arrVestingPhases = [];
+  const decimals = '00000000';
 
   async function deploy() {
-    [account0, account1, account2] = await ethers.getSigners();
-    const AqualisToken = await ethers.getContractFactory("Token");
-    aqualisToken = await AqualisToken.deploy('Aqualis Token', 'AQT');
-    const AqualisStaking = await ethers.getContractFactory("AqualisStaking");
-    aqualisStaking = await AqualisStaking.deploy(aqualisToken.address);  
+    accounts = await ethers.getSigners();
+    admin = accounts[0];
+    const Token = await ethers.getContractFactory("Token");
+    token = await Token.deploy("Digitra.com", 'DGTA');
+    const Vesting = await ethers.getContractFactory("TokenVesting");
+    vesting = await Vesting.deploy(token.address);  
   }
+
+  const loadVestingDataFromYaml = async () => {
+    const file = fs.readFileSync('./scripts/vesting.yml').toString();
+    const data = YAML.parse(file);
+    phases = data.phases;
+    console.log(`      \x1b[34mRounds amount:\x1b[0m ${phases.length}`);
+  };
+
+  const addSchedules = async () => {
+    var i = 0;
+    for (let phase of phases) {
+      i++;
+      const phaseName = phase.round_name;
+      const amountTotal = phase.amountTotal + decimals, 
+            amountAfterCliff = phase.amountAfterCliff + decimals;
+      const tx = await vesting.createVestingSchedule(accounts[i].address, phase.durationDays, phase.cliffDays, amountTotal, amountAfterCliff);
+      console.log(`      Phase (${phaseName}) tx.hash: `, tx.hash);
+
+      arrVestingPhases.push({beneficiary: accounts[i].address, durationDays: phase.durationDays, cliffDays: phase.cliffDays, amountTotal: amountTotal, amountAfterCliff: amountAfterCliff});
+
+    };
+  };
 
   describe("Deployment, fill the balances, check setters and getters", function () {
 
-    it("Set parameters", async function () {
-
+    it("Check Token address", async function () {
       await loadFixture(deploy);
-      await aqualisStaking.setTreasuryAddress(process.env.TREASURY_ADDRESS);
-      await aqualisStaking.setRewardsPoolAddress(process.env.RWRDS_POOL_ADDRESS);
-
-      expect(await aqualisStaking.treasuryAddress()).to.equal(process.env.TREASURY_ADDRESS);
-      expect(await aqualisStaking.rewardsPoolAddress()).to.equal(process.env.RWRDS_POOL_ADDRESS);
-
+      expect(await vesting.tokenAddress()).to.equal(token.address);
     });
 
-    it("Setters & getters", async function () {
-
-      await aqualisStaking.setRewardsPerCompPeriod(22);
-      expect(await aqualisStaking.rewardsPerWeek()).to.equal(22);
-      await aqualisStaking.setPenaltyPerCompPeriod(4);
-      expect(await aqualisStaking.penaltyPerWeek()).to.equal(4);
-      await aqualisStaking.setMinimumWeeksNum(6);
-      expect(await aqualisStaking.minimumWeeksNum()).to.equal(6);
-      await aqualisStaking.setMaximumWeeksNum(200);
-      expect(await aqualisStaking.maximumWeeksNum()).to.equal(200);
-      // const depInfo = await aqualisStaking.getDepositInfo(account0.address);
-      // console.log(depInfo);
-      // const stakeInfo = await aqualisStaking.getStakeInfo(account0.address);
-      // console.log(stakeInfo);
-
-      // Return all parameters to default
-      await aqualisStaking.setRewardsPerCompPeriod(20);
-      await aqualisStaking.setPenaltyPerCompPeriod(3);
-      await aqualisStaking.setMinimumWeeksNum(5);
-      await aqualisStaking.setMaximumWeeksNum(104);
-
-    });
-
-    it("Should set the right Token", async function () {
-      expect(await aqualisStaking.token()).to.equal(aqualisToken.address);
-    });
-
-    it("Should set the right owner for Token & Staking", async function () {
-      expect(await aqualisToken.owner()).to.equal(account0.address);
-      expect(await aqualisStaking.owner()).to.equal(account0.address);
+    it("Should set the right admin for Token & Vesting", async function () {
+      // expect(await token.owner()).to.equal(account0.address);
+      // expect(await vesting.owner()).to.equal(account0.address);
     });
 
     it("Should get the right balances", async function () {
-
-      const amount = hre.ethers.utils.parseEther("1000000000");
-      await aqualisToken.transfer(account1.address, amount);
-      await aqualisToken.transfer(account2.address, amount);
-      expect(await aqualisToken.balanceOf(account1.address)).to.equal(amount);
-      expect(await aqualisToken.balanceOf(account2.address)).to.equal(amount);
-
-    });
-
-    it("Should fail", async function () {
-      await expect(aqualisStaking.stake(0, 0)).to.be.revertedWith("Amount smaller than minimimum deposit");
+      const amount = '300000000' + decimals; // 300 000 000 Tokens with 8 decimals
+      expect(await token.balanceOf(admin.address)).to.equal(amount);
+      expect(await token.balanceOf(vesting.address)).to.equal(0);
+      await token.transfer(vesting.address, amount);
+      expect(await token.balanceOf(admin.address)).to.equal(0);
+      expect(await token.balanceOf(vesting.address)).to.equal(amount);
     });
 
   });
 
-  describe("Stake", function () {
+  describe("Fill vesting phases", function () {
 
-    it("Approve Tokens for Staking SC", async function () {
+    it("Load data", async function () {
+      await loadFixture(loadVestingDataFromYaml);
+      await loadFixture(addSchedules);      
+    });
 
-      const amount = hre.ethers.utils.parseEther("1000000000");
-      await aqualisToken.approve(aqualisStaking.address, amount); 
-      await aqualisToken.connect(account1).approve(aqualisStaking.address, amount); 
-      await aqualisToken.connect(account2).approve(aqualisStaking.address, amount);  
+    it("Admin/Not admin withdraw", async function () {
 
-      expect(await aqualisToken.allowance(account0.address, aqualisStaking.address)).to.equal(amount);
-      expect(await aqualisToken.allowance(account1.address, aqualisStaking.address)).to.equal(amount);
-      expect(await aqualisToken.allowance(account2.address, aqualisStaking.address)).to.equal(amount);
+      // Admin
+      await vesting.withdraw('1' + decimals);
+      expect(await token.balanceOf(admin.address)).to.equal('1' + decimals);
+      expect(await token.balanceOf(vesting.address)).to.equal('299999999' + decimals);
+      // Not admin
+      await expect(vesting.connect(accounts[1]).withdraw('1')).to.be.revertedWith("TokenVesting: Caller is not an admin");
+
+      await token.transfer(vesting.address, '1' + decimals);
 
     });
 
-    it("Stake for 3 accounts", async function () {
+  });
 
-      const amount100 = hre.ethers.utils.parseEther("100");
-      const amount200 = hre.ethers.utils.parseEther("200");
-      const amount300 = hre.ethers.utils.parseEther("300");
+  describe("Check Withdrawable amount", function () {
 
-      await aqualisStaking.stake(amount100, 10); // account0
-      await aqualisStaking.stakeFor(account1.address, amount100, 10); // account1
-      await aqualisStaking.connect(account2).stake(amount100, 10); // account2
+    // accounts[1] - Long-term reserve     - cliffDays: 30 - amountTotal: "74 668 025" - amountAfterCliff: "2 196 118"
+    // accounts[2] - Private Sale (Seed)   - cliffDays: 0  - amountTotal: " 6 428 571" - amountAfterCliff: "  714 286"
+    // accounts[3] - Public Sale (Up to)   - cliffDays: 0  - amountTotal: " 3 600 000" - amountAfterCliff: "  900 000"
+    // accounts[4] - New Clients Incentive - cliffDays: 0  - amountTotal: "27 710 000" - amountAfterCliff: "4 890 000"
+    // accounts[5] - Trade-to-Earn Airdrop - cliffDays: 0  - amountTotal: "23 114 400" - amountAfterCliff: "5 778 600"
+    // accounts[6] - Marketing & Liquidity - cliffDays: 0  - amountTotal: "51 000 000" - amountAfterCliff: "9 000 000"
+    // accounts[7] - Team incentives       - cliffDays: 30 - amountTotal: "58 983 051" - amountAfterCliff: "1 016 949"
+    // accounts[8] - Ecosystem Growth      - cliffDays: 30 - amountTotal: "28 695 652" - amountAfterCliff: "1 304 348"
 
-      expect(await aqualisStaking.totalStakedFor(account0.address)).to.equal(amount100);
-      expect(await aqualisStaking.totalStakedFor(account1.address)).to.equal(amount100);
-      expect(await aqualisStaking.totalStakedFor(account2.address)).to.equal(amount100);
-      expect(await aqualisStaking.totalStaked()).to.equal(amount300);
 
-      // await expect(aqualisStaking.stake(amount100, 104)).to.emit(aqualisStaking, "Staked").withArgs(account0.address, amount100, amount200, anyValue);
-      // await expect(aqualisStaking.connect(account1).stake(amount100, 105)).to.emit(aqualisStaking, "Staked").withArgs(account1.address, amount100, amount200, anyValue);
-      // await expect(aqualisStaking.connect(account2).stake(amount100, 105)).to.emit(aqualisStaking, "Staked").withArgs(account2.address, amount100, amount200, anyValue);
+    // it("getVestingSchedule", async function () {
+    //   for (var i = 0; i < arrVestingPhases.length; i++) {
+    //     const invest = arrVestingPhases[i].beneficiary;
+    //     const schedule = await vesting.getVestingSchedule(invest);     
+    //     console.log(`Vesting schedule for investor: ${invest} = ${schedule}`);  
+    //   }
+    //   // console.log(arrVestingPhases);
+    // });
+    
+    // it("getWithdrawableAmount", async function () {
+    //   const withAmount = await vesting.getWithdrawableAmount();     
+    //   console.log(`Withdrawable amount: ${withAmount}`) 
+    // });
 
+    it("Releasable amount befor vesting start", async function () {
+      for (var i = 0; i < arrVestingPhases.length; i++) {
+        const invest = arrVestingPhases[i].beneficiary;
+        expect(await vesting.computeReleasableAmount(invest)).to.equal(0);  
+      }
     });
 
-    it("Extend timeLock and increase stake amount", async function () {
-
-      let stakeInfo = await aqualisStaking.getStakeInfo(account0.address);
-      console.log('Account: ', account0.address, ' timeLock before extending: ', stakeInfo.timeLock);
-      await aqualisStaking.extendStaking(5); // Extend for 5 weeks
-      stakeInfo = await aqualisStaking.getStakeInfo(account0.address);
-      console.log('Account: ', account0.address, ' timeLock after extending: ', stakeInfo.timeLock);
+    it("Releasable amount after vesting start. Before 1st cliff.", async function () {
 
       let now = await time.latest();
-      // await time.increaseTo(now + 89 * 604800);
-      await time.increaseTo(now + 5 * 604800);
+      await time.increaseTo(now + 12 * 86400);
 
-      // stakeInfo = await aqualisStaking.getStakeInfo(account0.address);
-      // console.log('stakeInfo', stakeInfo)
-
-      const incAmount = hre.ethers.utils.parseEther("100");
-      console.log('Account: ', account0.address, ' amount before extending: ', stakeInfo.amount);
-      await aqualisStaking.increaseStakingAmount(incAmount); // Increase for 1 token
-      stakeInfo = await aqualisStaking.getStakeInfo(account0.address);
-      console.log('Account: ', account0.address, ' amount after extending: ', stakeInfo.amount);
-
-      console.log('stakeInfo', stakeInfo)
-
-    });
-
-    it("Check staking amount, reward and timer", async function () {
-
-      let stakeAmount, reward, weeksForUnstake;
-      let now = await time.latest();
-      weeksForUnstake = await aqualisStaking.weeksForTimeLock(account0.address);
-      [stakeAmount, ] = await aqualisStaking.getDepositInfo(account0.address);
-      console.log('Stake amount: ', BigInt(stakeAmount));
-      const n = Number(BigInt(weeksForUnstake));
-      for (let i=1; i <= n; i++) {
-        [,reward] = await aqualisStaking.getDepositInfo(account0.address);
-        // reward = await aqualisStaking.calculateAqualisPower(account0.address);
-        weeksForUnstake = await aqualisStaking.weeksForTimeLock(account0.address);
-        await time.increaseTo(now + i * 604800);
-        console.log(i, '. AP: ', BigInt(reward), '. Weeks for unstake: ', BigInt(weeksForUnstake));
+      for (var i = 0; i < arrVestingPhases.length; i++) {
+        const phase = arrVestingPhases[i];
+        let amount = 0;
+        if (!phase.cliffDays) {
+          amount = phase.amountAfterCliff;
+        }
+        expect(await vesting.computeReleasableAmount(phase.beneficiary)).to.equal(amount);  
       }
 
     });
 
+    // it("computeReleasableAmount", async function () {
+    //   for (var i = 0; i < arrVestingPhases.length; i++) {
+    //     const invest = arrVestingPhases[i].beneficiary;
+    //     const releasAmount = await vesting.computeReleasableAmount(invest);     
+    //     console.log(`Releasable amount for investor: ${invest} = ${releasAmount}`); 
+    //   }
+    // });
+    
   });
 
-  describe("Unstake", async function () {
+  describe("Claim", function () {
 
-    it("Unstake should fail, because timeLock perion not finished", async function () {
-      let now = await time.latest();
-      await time.increaseTo(now+10);
-      await expect(aqualisStaking.unstake(1000000000)).to.be.revertedWith("Timelock period has not expired");
-    });
-
-    it("Unstake should fail, because amount larger than staker has", async function () {
-      const amount300 = hre.ethers.utils.parseEther("300");
-      await expect(aqualisStaking.unstake(amount300)).to.be.revertedWith("Can't withdraw more than you have");
-    });
-
-    it("Unstake with penalty", async function () {
-
-      let weeksForUnstake = await aqualisStaking.weeksForTimeLock(account0.address);
-      let stakeInfo = await aqualisStaking.getStakeInfo(account0.address);
-      const amount100 = hre.ethers.utils.parseEther("100");
-
-      let totalSupply = await aqualisToken.totalSupply();
-      let ownerBallance = await aqualisToken.balanceOf(account0.address);
-      let stakingBallance = await aqualisToken.balanceOf(aqualisStaking.address);
-      let treasuryBallance = await aqualisToken.balanceOf(process.env.TREASURY_ADDRESS);
-      let rwrdsPoolBallance = await aqualisToken.balanceOf(process.env.RWRDS_POOL_ADDRESS);
-      console.log('Account: ', account0.address, ' amount: ', BigInt(stakeInfo.amount), ' timeLock: ', BigInt(stakeInfo.timeLock));
-      console.log('Weeks for unstake: ', BigInt(weeksForUnstake));
-      console.log('Before unastake with penalty: totalSupply: ', BigInt(totalSupply), '. ownerBallance', BigInt(ownerBallance), '. stakingBallance', BigInt(stakingBallance), '. treasuryBallance', BigInt(treasuryBallance), '. rwrdsPoolBallance', BigInt(rwrdsPoolBallance));
-
-      await aqualisStaking.unstakeWithPenalty(amount100);
+    it("Claim after cliff. 1 day.", async function () {
       
-      totalSupply = await aqualisToken.totalSupply();
-      ownerBallance = await aqualisToken.balanceOf(account0.address);
-      stakingBallance = await aqualisToken.balanceOf(aqualisStaking.address);
-      treasuryBallance = await aqualisToken.balanceOf(process.env.TREASURY_ADDRESS);
-      rwrdsPoolBallance = await aqualisToken.balanceOf(process.env.RWRDS_POOL_ADDRESS);
-      console.log('After unastake with penalty:  totalSupply: ', BigInt(totalSupply), '. ownerBallance', BigInt(ownerBallance), '. stakingBallance', BigInt(stakingBallance), '. treasuryBallance', BigInt(treasuryBallance), '. rwrdsPoolBallance', BigInt(rwrdsPoolBallance));
-      console.log(' - ownerBallance must increase for amount (100 Tokens) - penalty (depends on staking period)');
-      console.log(' - totalSupply must decrease for burned amount = 50% of penalty');
-      console.log(' - stakingBallance must decrease for unstaking amount (100 Tokens)');
-      console.log(' - treasuryBallance must increase for 10% from penalty');
-      console.log(' - rwrdsPoolBallance must increase for 40% from penalty');
+      for (var i = 0; i < arrVestingPhases.length; i++) {
+        const phase = arrVestingPhases[i];
+        let amount = 0;
+        if (phase.cliffDays) {
+          await expect(vesting.connect(accounts[i+1]).claim()).to.be.revertedWith("TokenVesting: nothing to claim"); // i+1 because 0 is admin account
+        } else {
+          amount = phase.amountAfterCliff;
+          await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
+        }
+        const bal = await token.balanceOf(phase.beneficiary);
+        expect(bal).to.equal(amount);  
+        console.log(phase.beneficiary + ' balance is: ' + bal);
+      }
+
+      // Claim from not investor account
+      await expect(vesting.connect(accounts[9]).claim()).to.be.revertedWith("TokenVesting: only investors can claim");
+
+    });
+
+    it("Claim after 1 month.", async function () {
+      
+      await time.increase(30 * 86400);
+
+      for (var i = 0; i < arrVestingPhases.length; i++) {
+        const phase = arrVestingPhases[i];
+        await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
+
+        console.log(phase.beneficiary + ' balance is: ' + await token.balanceOf(phase.beneficiary));  
+      }
 
     });
 

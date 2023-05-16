@@ -32,7 +32,7 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
      * @dev Throws if called by any accounts other than the SA (stage adjustment) or admin.
      */
     modifier onlyAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin ");
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "TokenVesting: Caller is not an admin");
         _;
     }
 
@@ -48,7 +48,8 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         require(_token != address(0x0));
         tokenAddress = _token;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        start = 1685221200; // 28.05.2023 GMT 
+        start = 1685221200; // 28.05.2023 00:00:00 GMT 
+        // start = 1684184400; // 16.05.2023 00:00:00 GMT 
         slicePeriodDays = 30; 
     }
     
@@ -93,8 +94,10 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
     function claim() external nonReentrant {
 
         VestingSchedule storage vestingSchedule = vestingSchedules[msg.sender];
-        require(vestingSchedule.amountTotal > 0, "TokenVesting: only beneficiary can claim");
+        require(vestingSchedule.amountTotal > 0, "TokenVesting: only investors can claim");
         uint256 vestedAmount = _computeReleasableAmount(vestingSchedule);
+        require(vestedAmount > 0, "TokenVesting: nothing to claim");
+
         vestingSchedule.released += (uint112(vestedAmount) - vestingSchedule.amountAfterCliff);  // amountAfterCliff - could not be > vestedAmount, because it used in calculation of vestedAmount
         vestingSchedule.amountAfterCliff = 0;
         vestingSchedulesTotalAmount -= vestedAmount;
@@ -150,7 +153,7 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         }
         // Otherwise, some tokens are releasable.
         else {       
-            uint32 vestedSlicePeriods = (currentTime - start) / (uint32(slicePeriodDays) * 86400); // Compute the number of full vesting periods that have elapsed.
+            uint32 vestedSlicePeriods = (currentTime - start - (uint32(vestingSchedule.cliffDays) * 86400)) / (uint32(slicePeriodDays) * 86400); // Compute the number of full vesting periods that have elapsed.
             uint32 vestedSeconds = vestedSlicePeriods * (uint32(slicePeriodDays) * 86400);            
             uint256 vestedAmount = (vestingSchedule.amountTotal * uint256(vestedSeconds)) / (uint256(vestingSchedule.durationDays) * 86400); // Compute the amount of tokens that are vested.
             return vestedAmount + uint256(vestingSchedule.amountAfterCliff) - uint256(vestingSchedule.released); // Subtract the amount already released and return.

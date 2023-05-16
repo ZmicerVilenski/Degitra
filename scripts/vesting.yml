@@ -3,54 +3,54 @@ phases:
     beneficiary: "0x0000000000000000000000000000000000000001"
     durationDays: 1050
     cliffDays: 30
-    amountTotal: 74668025 #(76,864,143 - 2,196,118)
-    amountAfterCliff: 2196118
+    amountTotal: "74668025" #(76,864,143 - 2,196,118)
+    amountAfterCliff: "2196118"
 
   - round_name: Private Sale (Seed)
     beneficiary: "0x0000000000000000000000000000000000000002"
     durationDays: 690
     cliffDays: 0
-    amountTotal: 6428571 #(7,142,857 - 714,286)
-    amountAfterCliff: 714286
+    amountTotal: "6428571" #(7,142,857 - 714,286)
+    amountAfterCliff: "714286"
 
   - round_name: Public Sale (Up to)
     beneficiary: "0x0000000000000000000000000000000000000003"
     durationDays: 120
     cliffDays: 0
-    amountTotal: 4500000 #(4,500,000 - 900,000)
-    amountAfterCliff: 3600000
+    amountTotal: "3600000" #(4,500,000 - 900,000)
+    amountAfterCliff: "900000"
 
   - round_name: New Clients Incentive
     beneficiary: "0x0000000000000000000000000000000000000004"
     durationDays: 690
     cliffDays: 0
-    amountTotal: 27710000 #(32,600,000 - 4,890,000)
-    amountAfterCliff: 4890000
+    amountTotal: "27710000" #(32,600,000 - 4,890,000)
+    amountAfterCliff: "4890000"
 
   - round_name: Trade-to-Earn Airdrop
     beneficiary: "0x0000000000000000000000000000000000000005"
     durationDays: 690
     cliffDays: 0
-    amountTotal: 23114400 #(28,893,000 - 5,778,600)
-    amountAfterCliff: 5778600
+    amountTotal: "23114400" #(28,893,000 - 5,778,600)
+    amountAfterCliff: "5778600"
 
   - round_name: Marketing & Liquidity
     beneficiary: "0x0000000000000000000000000000000000000006"
     durationDays: 690
     cliffDays: 0
-    amountTotal: 51000000 #(60,000,000 - 9,000,000)
-    amountAfterCliff: 9000000
+    amountTotal: "51000000" #(60,000,000 - 9,000,000)
+    amountAfterCliff: "9000000"
 
   - round_name: Team incentives
     beneficiary: "0x0000000000000000000000000000000000000007"
     durationDays: 1770
     cliffDays: 30
-    amountTotal: 58983051 #(60,000,000 - 1,016,949)
-    amountAfterCliff: 1016949
+    amountTotal: "58983051" #(60,000,000 - 1,016,949)
+    amountAfterCliff: "1016949"
 
   - round_name: Ecosystem Growth
     beneficiary: "0x0000000000000000000000000000000000000008"
     durationDays: 690
     cliffDays: 30
-    amountTotal: 28695652 #(30,000,000 - 1,304,348)
-    amountAfterCliff: 1304348
+    amountTotal: "28695652" #(30,000,000 - 1,304,348)
+    amountAfterCliff: "1304348"
