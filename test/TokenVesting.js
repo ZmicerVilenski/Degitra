@@ -7,6 +7,7 @@ const { expect } = require("chai");
 require('dotenv').config();
 const fs = require('fs');
 const YAML = require('yaml');
+const { table } = require("console");
 
 describe("Digitra Token & Vesting", function () {
 
@@ -152,6 +153,7 @@ describe("Digitra Token & Vesting", function () {
 
     it("Claim after cliff. 1 day.", async function () {
       
+      tableArr = [];
       for (var i = 0; i < arrVestingPhases.length; i++) {
         const phase = arrVestingPhases[i];
         let amount = 0;
@@ -163,23 +165,46 @@ describe("Digitra Token & Vesting", function () {
         }
         const bal = await token.balanceOf(phase.beneficiary);
         expect(bal).to.equal(amount);  
-        console.log(phase.phaseName + ' balance is: ' + bal);
+
+        let balance = Number(bal) / 100000000;
+        balance = balance.toFixed(0);
+        tableArr.push({phaseName: phase.phaseName, balance: balance});
       }
 
       // Claim from not investor account
       await expect(vesting.connect(accounts[9]).claim()).to.be.revertedWith("TokenVesting: only investors can claim");
 
+      const timestamp = await time.latest();
+      console.log(new Date(timestamp*1000));
+      console.table(tableArr);
+
     });
 
-    it("Claim after 1 month.", async function () {
+    it("Claim for next 5 years.", async function () {
       
-      await time.increase(30 * 86400);
+      // 60 = 5 years
+      for (var month = 1; month < 60; month++) {
 
-      for (var i = 0; i < arrVestingPhases.length; i++) {
-        const phase = arrVestingPhases[i];
-        await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
+        await time.increase(30 * 86400);
 
-        console.log(phase.phaseName + ' balance is: ' + await token.balanceOf(phase.beneficiary));  
+        tableArr = [];
+        for (var i = 0; i < arrVestingPhases.length; i++) {
+          const phase = arrVestingPhases[i];
+          try {
+            await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
+          } catch (error) {
+
+          }
+
+          let balance = Number(await token.balanceOf(phase.beneficiary)) / 100000000;
+          balance = balance.toFixed(0);
+          tableArr.push({phaseName: phase.phaseName, balance: balance});  
+        }
+
+        const timestamp = await time.latest();
+        console.log(new Date(timestamp*1000));
+        console.table(tableArr);
+
       }
 
     });

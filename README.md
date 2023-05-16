@@ -16,7 +16,7 @@ git clone https://github.com/ZmicerVilenski/Degitra.git
 npm i
 ```
 
-1. Tests
+1. Local tests
 
 ```shell
 npx hardhat test
@@ -33,9 +33,9 @@ npx hardhat test
 npx hardhat run scripts/deploy.js --network sepolia
 ```
 
-4. Fill variable - VESTING_ADDRESS in .env file
+4. Change variable - VESTING_ADDRESS in .env file for new deployed Vesting contract address
 
-5. Add vesting schedules in to Vesting contract
+5. Load vesting schedule data into smart contract
 
 ```shell
 npx hardhat run --network sepolia ./scripts/fillVesting.js
