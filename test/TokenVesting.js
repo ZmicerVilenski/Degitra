@@ -39,7 +39,7 @@ describe("Digitra Token & Vesting", function () {
       const tx = await vesting.createVestingSchedule(accounts[i].address, phase.durationDays, phase.cliffDays, amountTotal, amountAfterCliff);
       console.log(`      Phase (${phaseName}) tx.hash: `, tx.hash);
 
-      arrVestingPhases.push({beneficiary: accounts[i].address, durationDays: phase.durationDays, cliffDays: phase.cliffDays, amountTotal: amountTotal, amountAfterCliff: amountAfterCliff});
+      arrVestingPhases.push({beneficiary: accounts[i].address, durationDays: phase.durationDays, cliffDays: phase.cliffDays, amountTotal: amountTotal, amountAfterCliff: amountAfterCliff, phaseName: phaseName});
 
     };
   };
@@ -163,7 +163,7 @@ describe("Digitra Token & Vesting", function () {
         }
         const bal = await token.balanceOf(phase.beneficiary);
         expect(bal).to.equal(amount);  
-        console.log(phase.beneficiary + ' balance is: ' + bal);
+        console.log(phase.phaseName + ' balance is: ' + bal);
       }
 
       // Claim from not investor account
@@ -179,7 +179,7 @@ describe("Digitra Token & Vesting", function () {
         const phase = arrVestingPhases[i];
         await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
 
-        console.log(phase.beneficiary + ' balance is: ' + await token.balanceOf(phase.beneficiary));  
+        console.log(phase.phaseName + ' balance is: ' + await token.balanceOf(phase.beneficiary));  
       }
 
     });

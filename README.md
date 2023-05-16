@@ -1,30 +1,41 @@
-# Sample Hardhat Project
+# Digitra Vesting
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+[What is Digitra.com’s DGTA token?](https://www.digitra.com/en/what-is-digitra-coms-dgta-token/)
 
-Try running some of the following tasks:
+[Google docs](https://docs.google.com/spreadsheets/d/1stxleTTmFQfd4sTY7XreLcD5vYmCTM8PCF66YMcdvFE/edit#gid=1915831371)
+
+[Google docs (Dev)](https://docs.google.com/spreadsheets/d/18hp0wgmIWaXuWRB0w7Gx7R6BLBqeZbdUhsdbK8QQMUQ/edit#gid=0)
+
+![Tokenomics](img/chart1.jpg)  
+![Tokenomics](img/chart2.jpg)  
+
+Install project
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.js
+git clone https://github.com/ZmicerVilenski/Degitra.git
+npm i
 ```
 
-1. Before deploy in mainnet fill variables in .env file:
-VERIFY_ON_ETHERSCAN=true
-TRANSFER_OWNERSHIP=true
+1. Tests
 
-2. Deploy & Verify with new deploy-script
+```shell
+npx hardhat test
+```
+
+2. Before deploy in mainnet fill variables in .env file:
+> VERIFY_ON_ETHERSCAN=true
+
+> TRANSFER_OWNERSHIP=true
+
+3. Deploy & Verify with new deploy-script
 
 ```shell
 npx hardhat run scripts/deploy.js --network sepolia
 ```
 
-3. Fill variable - VESTING_ADDRESS in .env file
+4. Fill variable - VESTING_ADDRESS in .env file
 
-4. Add vesting schedules in to Vesting contract
+5. Add vesting schedules in to Vesting contract
 
 ```shell
 npx hardhat run --network sepolia ./scripts/fillVesting.js
