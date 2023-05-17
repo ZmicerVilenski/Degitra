@@ -111,10 +111,10 @@ describe("Digitra Token & Vesting", function () {
     //   // console.log(arrVestingPhases);
     // });
     
-    // it("getWithdrawableAmount", async function () {
-    //   const withAmount = await vesting.getWithdrawableAmount();     
-    //   console.log(`Withdrawable amount: ${withAmount}`) 
-    // });
+    it("getWithdrawableAmount", async function () {
+      const withAmount = await vesting.getWithdrawableAmount();     
+      console.log(`Withdrawable amount: ${withAmount}`) 
+    });
 
     it("Releasable amount befor vesting start", async function () {
       for (var i = 0; i < arrVestingPhases.length; i++) {
@@ -181,11 +181,11 @@ describe("Digitra Token & Vesting", function () {
     });
 
     it("Claim for next 5 years.", async function () {
-      
+
       // 60 = 5 years
       for (var month = 1; month < 60; month++) {
 
-        await time.increase(30 * 86400);
+        await time.increase(30 * 86400); 
 
         tableArr = [];
         for (var i = 0; i < arrVestingPhases.length; i++) {
