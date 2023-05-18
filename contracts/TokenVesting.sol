@@ -9,9 +9,9 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  */
 contract TokenVesting is AccessControl, ReentrancyGuard {
     // 1 slot
-    uint32 start; // start time of the vesting period
-    uint16 slicePeriodDays; // duration of a slice period for the vesting in days
-    address public tokenAddress;
+    uint32 constant start = 1685221200; // 1685221200 = 28.05.2023 00:00:00 GMT. start time of the vesting period
+    uint16 constant slicePeriodDays = 30; // duration of a slice period for the vesting in days
+    address public immutable tokenAddress;
     // 2 slot
     uint256 public vestingSchedulesTotalAmount;
 
@@ -28,7 +28,7 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
     mapping(address => VestingSchedule) private vestingSchedules;
 
     /**
-     * @dev Throws if called by any accounts other than the SA (stage adjustment) or admin.
+     * @dev Throws if called by any accounts other than admin.
      */
     modifier onlyAdmin() {
         require(
@@ -54,11 +54,10 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         require(_token != address(0x0));
         tokenAddress = _token;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        start = 1685221200; // 28.05.2023 00:00:00 GMT
-        slicePeriodDays = 30;
     }
 
     /**
+     * @notice Function for emergency withdrawal of tokens. Its presence must be agreed with the customer!
      * @notice Withdraw the specified amount if possible. Can be used by admin in case of emergency !!!
      * @param _amount the amount to withdraw
      */
@@ -88,6 +87,11 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
             _durationDays >= uint16(_cliffDays),
             "TokenVesting: duration must be >= cliff"
         );
+        require(
+            _amountTotal >= _amountAfterCliff,
+            "TokenVesting: total amount must be >= amount after cliff"
+        );
+        // Perhaps needed to make a block on the start date of vesting. so that later the administrator could not make changes.
         vestingSchedules[_beneficiary] = VestingSchedule(
             _cliffDays,
             _durationDays,
@@ -112,8 +116,11 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         uint256 vestedAmount = _computeReleasableAmount(vestingSchedule);
         require(vestedAmount > 0, "TokenVesting: nothing to claim");
 
+        // Try fill vestingSchedule in memory and than store in one operation !!!
+
+        // amountAfterCliff - could not be > vestedAmount, because it used in calculation of vestedAmount
         vestingSchedule.released += (uint112(vestedAmount) -
-            vestingSchedule.amountAfterCliff); // amountAfterCliff - could not be > vestedAmount, because it used in calculation of vestedAmount
+            vestingSchedule.amountAfterCliff);
         vestingSchedule.amountAfterCliff = 0;
         vestingSchedulesTotalAmount -= vestedAmount;
         _safeTransfer(tokenAddress, msg.sender, vestedAmount);

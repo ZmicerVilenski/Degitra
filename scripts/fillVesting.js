@@ -49,8 +49,9 @@ const addSchedules = async () => {
         if (await checkPhaseExistence(phase.beneficiary)) {
             console.log(`    Vesting Phase (${phaseName}) exist`);
         } else {
+            const gas = await vesting.estimateGas.createVestingSchedule(phase.beneficiary, phase.durationDays, phase.cliffDays, amountTotal, amountAfterCliff);
             const tx = await vesting.createVestingSchedule(phase.beneficiary, phase.durationDays, phase.cliffDays, amountTotal, amountAfterCliff);
-            console.log(`    Vesting Phase (${phaseName}) initialization tx.hash: `, tx.hash);
+            console.log(`    Vesting Phase (${phaseName}) initialization tx.hash: ${tx.hash}. Gas: ${gas}`);
         }
 
     };

@@ -9,7 +9,7 @@ const fs = require('fs');
 const YAML = require('yaml');
 const { table } = require("console");
 
-describe("Digitra Token & Vesting", function () {
+describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors will claim tokens every month on time.", function () {
 
   let token, vesting, phases, admin, accounts, arrVestingPhases = [];
   const decimals = '00000000';
@@ -50,6 +50,8 @@ describe("Digitra Token & Vesting", function () {
     it("Check Token address", async function () {
       await loadFixture(deploy);
       expect(await vesting.tokenAddress()).to.equal(token.address);
+      const timestamp = await time.latest();
+      console.log('1.', new Date(timestamp*1000));
     });
 
     it("Should set the right admin for Token & Vesting", async function () {
@@ -71,8 +73,10 @@ describe("Digitra Token & Vesting", function () {
   describe("Fill vesting phases", function () {
 
     it("Load data", async function () {
-      await loadFixture(loadVestingDataFromYaml);
-      await loadFixture(addSchedules);      
+      // await loadFixture(loadVestingDataFromYaml);
+      // await loadFixture(addSchedules);      
+      loadVestingDataFromYaml();
+      addSchedules();
     });
 
     it("Admin/Not admin withdraw", async function () {
@@ -126,7 +130,7 @@ describe("Digitra Token & Vesting", function () {
     it("Releasable amount after vesting start. Before 1st cliff.", async function () {
 
       let now = await time.latest();
-      await time.increaseTo(now + 12 * 86400);
+      await time.increaseTo(now + 10 * 86400);
 
       for (var i = 0; i < arrVestingPhases.length; i++) {
         const phase = arrVestingPhases[i];
@@ -190,11 +194,13 @@ describe("Digitra Token & Vesting", function () {
         tableArr = [];
         for (var i = 0; i < arrVestingPhases.length; i++) {
           const phase = arrVestingPhases[i];
-          try {
-            await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
-          } catch (error) {
+          // try {          
+            if (phase.durationDays / 30 >= month) {
+              await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
+            }
+          // } catch (error) {
 
-          }
+          // }
 
           let balance = Number(await token.balanceOf(phase.beneficiary)) / 100000000;
           balance = balance.toFixed(0);
@@ -207,6 +213,11 @@ describe("Digitra Token & Vesting", function () {
 
       }
 
+    });
+
+    it("Should get the right balances at the end", async function () {
+      expect(await token.balanceOf(admin.address)).to.equal(0);
+      expect(await token.balanceOf(vesting.address)).to.equal(0);
     });
 
   });
