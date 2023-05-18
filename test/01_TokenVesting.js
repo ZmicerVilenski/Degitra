@@ -129,8 +129,7 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
 
     it("Releasable amount after vesting start. Before 1st cliff.", async function () {
 
-      let now = await time.latest();
-      await time.increaseTo(now + 10 * 86400);
+      await time.increaseTo(1685232000); // Sun May 28 2023 00:00:00 GMT+0000
 
       for (var i = 0; i < arrVestingPhases.length; i++) {
         const phase = arrVestingPhases[i];

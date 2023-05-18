@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  */
 contract TokenVesting is AccessControl, ReentrancyGuard {
     // 1 slot
-    uint32 constant start = 1685221200; // 1685221200 = 28.05.2023 00:00:00 GMT. start time of the vesting period
+    uint32 constant start = 1685232000; // Sun May 28 2023 00:00:00 GMT+0000. start time of the vesting period
     uint16 constant slicePeriodDays = 30; // duration of a slice period for the vesting in days
     address public immutable tokenAddress;
     // 2 slot
