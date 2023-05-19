@@ -9,8 +9,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  */
 contract TokenVesting is AccessControl, ReentrancyGuard {
     // 1 slot
-    uint32 constant start = 1685232000; // Sun May 28 2023 00:00:00 GMT+0000. start time of the vesting period
-    uint16 constant slicePeriodDays = 30; // duration of a slice period for the vesting in days
+    uint32 constant START = 1685232000; // Sun May 28 2023 00:00:00 GMT+0000. start time of the vesting period
+    uint16 constant SLICE_PERIOD_DAYS = 30; // duration of a slice period for the vesting in days
     address public immutable tokenAddress;
     // 2 slot
     uint256 public vestingSchedulesTotalAmount;
@@ -27,6 +27,14 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
 
     mapping(address => VestingSchedule) private vestingSchedules;
 
+    event Clamed(address indexed beneficiary, uint256 amount);
+    event ScheduleCreated(
+        address indexed beneficiary,
+        uint16 durationDays,
+        uint112 amount
+    );
+    event WithdrawedByAdmin(uint256 amount);
+
     /**
      * @dev Throws if called by any accounts other than admin.
      */
@@ -37,14 +45,6 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         );
         _;
     }
-
-    event Clamed(address indexed beneficiary, uint256 amount);
-    event ScheduleCreated(
-        address indexed beneficiary,
-        uint16 durationDays,
-        uint112 amount
-    );
-    event WithdrawedByAdmin(uint256 amount);
 
     /**
      * @dev Creates a vesting contract.
@@ -87,10 +87,10 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
             _durationDays >= uint16(_cliffDays),
             "TokenVesting: duration must be >= cliff"
         );
-        require(
-            _amountTotal >= _amountAfterCliff,
-            "TokenVesting: total amount must be >= amount after cliff"
-        );
+        // require(
+        //     _amountTotal >= _amountAfterCliff,
+        //     "TokenVesting: total amount must be >= amount after cliff"
+        // );
         // Perhaps needed to make a block on the start date of vesting. so that later the administrator could not make changes.
         vestingSchedules[_beneficiary] = VestingSchedule(
             _cliffDays,
@@ -165,17 +165,16 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
     function _computeReleasableAmount(
         VestingSchedule memory vestingSchedule
     ) internal view returns (uint256) {
-        uint32 currentTime = uint32(block.timestamp);
         // If the current time is before the cliff, no tokens are releasable.
         uint32 cliffDuration = (uint32(vestingSchedule.cliffDays) * 86400);
-        if (currentTime < start + cliffDuration) {
+        if (uint32(block.timestamp) < START + cliffDuration) {
             return 0;
         }
         // If the current time is after the vesting period, all tokens are releasable,
         // minus the amount already released.
         else if (
-            currentTime >=
-            start + (uint32(vestingSchedule.durationDays) * 86400)
+            uint32(block.timestamp) >=
+            START + (uint32(vestingSchedule.durationDays) * 86400)
         ) {
             return
                 uint256(
@@ -186,12 +185,11 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         }
         // Otherwise, some tokens are releasable.
         else {
-            uint32 vestedSlicePeriods = (currentTime -
-                start -
-                (uint32(vestingSchedule.cliffDays) * 86400)) /
-                (uint32(slicePeriodDays) * 86400); // Compute the number of full vesting periods that have elapsed.
+            uint32 vestedSlicePeriods = (uint32(block.timestamp) -
+                START -
+                cliffDuration) / (uint32(SLICE_PERIOD_DAYS) * 86400); // Compute the number of full vesting periods that have elapsed.
             uint32 vestedSeconds = vestedSlicePeriods *
-                (uint32(slicePeriodDays) * 86400);
+                (uint32(SLICE_PERIOD_DAYS) * 86400);
             uint256 vestedAmount = (vestingSchedule.amountTotal *
                 uint256(vestedSeconds)) /
                 (uint256(vestingSchedule.durationDays) * 86400); // Compute the amount of tokens that are vested.
