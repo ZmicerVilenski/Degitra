@@ -54,17 +54,12 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
       console.log('1.', new Date(timestamp*1000));
     });
 
-    it("Should set the right admin for Token & Vesting", async function () {
-      // expect(await token.owner()).to.equal(account0.address);
-      // expect(await vesting.owner()).to.equal(account0.address);
-    });
-
     it("Should get the right balances", async function () {
-      const amount = '300000000' + decimals; // 300 000 000 Tokens with 8 decimals
-      expect(await token.balanceOf(admin.address)).to.equal(amount);
+      const amount = '295500000' + decimals; // 295 500 000 Tokens with 8 decimals (300 - 4.5 mln)
+      expect(await token.balanceOf(admin.address)).to.equal('300000000' + decimals);
       expect(await token.balanceOf(vesting.address)).to.equal(0);
       await token.transfer(vesting.address, amount);
-      expect(await token.balanceOf(admin.address)).to.equal(0);
+      expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
       expect(await token.balanceOf(vesting.address)).to.equal(amount);
     });
 
@@ -79,18 +74,18 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
       addSchedules();
     });
 
-    it("Admin/Not admin withdraw", async function () {
+    // it("Admin/Not admin withdraw", async function () {
 
-      // Admin
-      await vesting.withdraw('1' + decimals);
-      expect(await token.balanceOf(admin.address)).to.equal('1' + decimals);
-      expect(await token.balanceOf(vesting.address)).to.equal('299999999' + decimals);
-      // Not admin
-      await expect(vesting.connect(accounts[1]).withdraw('1')).to.be.revertedWith("TokenVesting: Caller is not an admin");
+    //   // Admin
+    //   await vesting.withdraw('1' + decimals);
+    //   expect(await token.balanceOf(admin.address)).to.equal('4500001' + decimals);
+    //   expect(await token.balanceOf(vesting.address)).to.equal('295499999' + decimals);
+    //   // Not admin
+    //   await expect(vesting.connect(accounts[1]).withdraw('1')).to.be.revertedWith("TokenVesting: Caller is not an admin");
 
-      await token.transfer(vesting.address, '1' + decimals);
+    //   await token.transfer(vesting.address, '1' + decimals);
 
-    });
+    // });
 
   });
 
@@ -215,7 +210,7 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
     });
 
     it("Should get the right balances at the end", async function () {
-      expect(await token.balanceOf(admin.address)).to.equal(0);
+      expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
       expect(await token.balanceOf(vesting.address)).to.equal(0);
     });
 

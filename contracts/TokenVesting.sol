@@ -2,12 +2,12 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title TokenVesting
  */
-contract TokenVesting is AccessControl, ReentrancyGuard {
+contract TokenVesting is Ownable, ReentrancyGuard {
     // 1 slot
     uint32 constant START = 1685232000; // Sun May 28 2023 00:00:00 GMT+0000. start time of the vesting period
     uint16 constant SLICE_PERIOD_DAYS = 30; // duration of a slice period for the vesting in days
@@ -36,34 +36,12 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
     event WithdrawedByAdmin(uint256 amount);
 
     /**
-     * @dev Throws if called by any accounts other than admin.
-     */
-    modifier onlyAdmin() {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "TokenVesting: Caller is not an admin"
-        );
-        _;
-    }
-
-    /**
      * @dev Creates a vesting contract.
      * @param _token address of the ERC20 token contract
      */
     constructor(address _token) {
         require(_token != address(0x0));
         tokenAddress = _token;
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
-
-    /**
-     * @notice Function for emergency withdrawal of tokens. Its presence must be agreed with the customer!
-     * @notice Withdraw the specified amount if possible. Can be used by admin in case of emergency !!!
-     * @param _amount the amount to withdraw
-     */
-    function withdraw(uint256 _amount) external onlyAdmin {
-        _safeTransfer(tokenAddress, msg.sender, _amount);
-        emit WithdrawedByAdmin(_amount);
     }
 
     /**
@@ -80,7 +58,11 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         uint8 _cliffDays,
         uint112 _amountTotal,
         uint112 _amountAfterCliff
-    ) external onlyAdmin {
+    ) external onlyOwner {
+        require(
+            START > uint32(block.timestamp),
+            "TokenVesting: forbidden to create a schedule after the start of vesting"
+        );
         require(_durationDays > 0, "TokenVesting: duration must be > 0");
         require(_amountTotal > 0, "TokenVesting: amount must be > 0");
         require(
@@ -91,7 +73,6 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         //     _amountTotal >= _amountAfterCliff,
         //     "TokenVesting: total amount must be >= amount after cliff"
         // );
-        // Perhaps needed to make a block on the start date of vesting. so that later the administrator could not make changes.
         vestingSchedules[_beneficiary] = VestingSchedule(
             _cliffDays,
             _durationDays,
@@ -115,8 +96,6 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
         );
         uint256 vestedAmount = _computeReleasableAmount(vestingSchedule);
         require(vestedAmount > 0, "TokenVesting: nothing to claim");
-
-        // Try fill vestingSchedule in memory and than store in one operation !!!
 
         // amountAfterCliff - could not be > vestedAmount, because it used in calculation of vestedAmount
         vestingSchedule.released += (uint112(vestedAmount) -
@@ -192,7 +171,8 @@ contract TokenVesting is AccessControl, ReentrancyGuard {
                 (uint32(SLICE_PERIOD_DAYS) * 86400);
             uint256 vestedAmount = (vestingSchedule.amountTotal *
                 uint256(vestedSeconds)) /
-                (uint256(vestingSchedule.durationDays) * 86400); // Compute the amount of tokens that are vested.
+                ((uint256(vestingSchedule.durationDays) -
+                    uint256(vestingSchedule.cliffDays)) * 86400); // Compute the amount of tokens that are vested.
             return
                 vestedAmount +
                 uint256(vestingSchedule.amountAfterCliff) -

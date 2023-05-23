@@ -53,7 +53,7 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
     });
 
     it("Should get the right balances", async function () {
-      const amount = '300000000' + decimals; // 300 000 000 Tokens with 8 decimals
+      const amount = '295500000' + decimals; // 295 500 000 Tokens with 8 decimals
       await token.transfer(vesting.address, amount);
       expect(await token.balanceOf(vesting.address)).to.equal(amount);
     });
@@ -131,7 +131,7 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
 
     it("Should get the right balances at the end", async function () {
 
-      expect(await token.balanceOf(admin.address)).to.equal(0);
+      expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
       expect(await token.balanceOf(vesting.address)).to.equal(0);
 
       tableArr = [];

@@ -13,12 +13,12 @@ phases:
     amountTotal: "6428571" #(7,142,857 - 714,286)
     amountAfterCliff: "714286"
 
-  - round_name: Public Sale (Up to)
-    beneficiary: "0x0000000000000000000000000000000000000003"
-    durationDays: 120
-    cliffDays: 0
-    amountTotal: "3600000" #(4,500,000 - 900,000)
-    amountAfterCliff: "900000"
+  # - round_name: Public Sale (Up to)
+  #   beneficiary: "0x0000000000000000000000000000000000000003"
+  #   durationDays: 120
+  #   cliffDays: 0
+  #   amountTotal: "3600000" #(4,500,000 - 900,000)
+  #   amountAfterCliff: "900000"
 
   - round_name: New Clients Incentive
     beneficiary: "0x0000000000000000000000000000000000000004"
