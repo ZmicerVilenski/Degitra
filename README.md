@@ -24,7 +24,7 @@ npx hardhat test
 3. Deploy & Verify with new deploy-script
 
 ```shell
-npx hardhat run scripts/deploy.js --network sepolia
+npx hardhat run scripts/deploy.js --network [sepolia|mainnet]
 ```
 
 4. Change variable - VESTING_ADDRESS in .env file for new deployed Vesting contract address
@@ -32,5 +32,5 @@ npx hardhat run scripts/deploy.js --network sepolia
 5. Load vesting schedule data into smart contract
 
 ```shell
-npx hardhat run --network sepolia ./scripts/fillVesting.js
+npx hardhat run --network [sepolia|mainnet] ./scripts/fillVesting.js
 ```
