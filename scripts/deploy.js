@@ -31,16 +31,11 @@ async function main() {
         console.error('error: ', error);
     }
   }
-  // TRANSFER_OWNERSHIP
+  // TRANSFER_TOKENS
   const newOwner = process.env.NEW_OWNER;
-  const transOwnerShip = (process.env.TRANSFER_OWNERSHIP.toLowerCase() === 'true');
-  if (transOwnerShip) {
-    await token.grantAdminRole(newOwner);
-    console.log(`Admin role for Token contract granted to: ${newOwner}`);
-    const amount = token.balanceOf(process.env.DEPLORER_ADDR);
-    await token.transfer(newOwner, amount);
-    console.log(`Send: ${amount} tokens to: ${newOwner}`);
-  }
+  const amountForOwner = '450000000000000';
+  await token.transfer(newOwner, amountForOwner);
+  console.log(`Send: ${amountForOwner} tokens to: ${newOwner}`);
 
 
   // DEPLOY VESTING
@@ -48,7 +43,11 @@ async function main() {
   const vesting = await Vesting.deploy(token.address);
   await vesting.deployed();
   console.log(`Vesting deployed to ${vesting.address}`);
-
+  // TRANSFER_TOKENS
+  const amountForVesting = '29550000000000000';
+  await token.transfer(vesting.address, amountForVesting);
+  console.log(`Send: ${amountForVesting} tokens to: ${vesting.address}`);
+  //
   if (verify) {
     // PAUSE
     console.log(`Pause 30 sec...`)
@@ -63,11 +62,6 @@ async function main() {
     } catch (error) {
         console.error('error: ', error);
     }
-  }
-  // TRANSFER_OWNERSHIP
-  if (transOwnerShip) {
-    await token.grantAdminRole(newOwner);
-    console.log(`Admin role for Vesting contract granted to: ${newOwner}`);
   }
 
 }

@@ -25,8 +25,6 @@ npx hardhat test
 2. Before deploy in mainnet fill variables in .env file:
 > VERIFY_ON_ETHERSCAN=true
 
-> TRANSFER_OWNERSHIP=true
-
 3. Deploy & Verify with new deploy-script
 
 ```shell
