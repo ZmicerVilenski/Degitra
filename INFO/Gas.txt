@@ -1,18 +1,18 @@
-TOKEN (0x30269429a0d9dB8e8F69b7846bD7c95B83a9Eb8f)
+TOKEN
 deploy: 1,381,208
 transfer to new owner: 52,177 
 transfer to vesting: 52,177
 
-VESTING (0x5B54d17429D7265Dce341D0552bcf4F4D8EA5eb0)
+VESTING
 deploy: 1,818,216 
 fill schedules: 286,542
-    Vesting Phase (Long-term reserve) initialization tx.hash: 0x4476813572fb75359b1b8fb71b56391c313690ab229f0fae4d58fe842462f0d1. Gas: 95518
-    Vesting Phase (Private Sale (Seed)) initialization tx.hash: 0x6358bfa23f7749b2a17227d7ed04063f874c03aaf5a30a7007cb38a9a82b3af1. Gas: 95494
-    Vesting Phase (New Clients Incentive) initialization tx.hash: 0xd14ee443d362162c2744ec641e35cb0ae2f0a48985c108144c01a704633d0080. Gas: 95506
-    Vesting Phase (Trade-to-Earn Airdrop) initialization tx.hash: 0x4642ba5f4bfd18eda1d2a4c1c6c371af563770216556dfe3a496dbf916ef53bf. Gas: 95506
-    Vesting Phase (Marketing & Liquidity) initialization tx.hash: 0xbd00b3a736e214470258b4d695b241b7a56adb4ac0caeaf3d265ba08a10dd838. Gas: 95506
-    Vesting Phase (Team incentives) initialization tx.hash: 0xa54d60f75c0c3341602570048ee53ab3471915e1527002b5ce36d150f78098cb. Gas: 95518
-    Vesting Phase (Ecosystem Growth) initialization tx.hash: 0x5bd01163566e3c1e46648b0d5b42063779c3870d2c0fee9f4378bdc43c39eb0a. Gas: 95518
+    Vesting Phase (Long-term reserve)  Gas: 95518
+    Vesting Phase (Private Sale (Seed))  Gas: 95494
+    Vesting Phase (New Clients Incentive)  Gas: 95506
+    Vesting Phase (Trade-to-Earn Airdrop) Gas: 95506
+    Vesting Phase (Marketing & Liquidity) Gas: 95506
+    Vesting Phase (Team incentives) Gas: 95518
+    Vesting Phase (Ecosystem Growth) Gas: 95518
 
 TOTAL GAS: 1,381,208 + 52,177 * 2 + 1,818,216 + 286,542 = 3.590.320
 

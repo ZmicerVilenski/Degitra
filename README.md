@@ -2,10 +2,6 @@
 
 [What is Digitra.com’s DGTA token?](https://www.digitra.com/en/what-is-digitra-coms-dgta-token/)
 
-[Google docs](https://docs.google.com/spreadsheets/d/1stxleTTmFQfd4sTY7XreLcD5vYmCTM8PCF66YMcdvFE/edit#gid=1915831371)
-
-[Google docs (Dev)](https://docs.google.com/spreadsheets/d/18hp0wgmIWaXuWRB0w7Gx7R6BLBqeZbdUhsdbK8QQMUQ/edit#gid=0)
-
 ![Tokenomics](img/chart1.jpg)  
 ![Tokenomics](img/chart2.jpg)  
 
