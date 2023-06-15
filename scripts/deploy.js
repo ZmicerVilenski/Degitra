@@ -28,25 +28,27 @@ async function main() {
         constructorArguments: [name, symbol],
       });
     } catch (error) {
-        console.error('error: ', error);
+      console.error('error: ', error);
     }
   }
-  // TRANSFER_TOKENS
-  const newOwner = process.env.NEW_OWNER;
-  const amountForOwner = '450000000000000';
-  await token.transfer(newOwner, amountForOwner);
-  console.log(`Send: ${amountForOwner} tokens to: ${newOwner}`);
+  // // TRANSFER_TOKENS
+  // const newOwner = process.env.NEW_OWNER;
+  // const amountForOwner = '450000000000000';
+  // await token.transfer(newOwner, amountForOwner);
+  // console.log(`Send: ${amountForOwner} tokens to: ${newOwner}`);
 
 
   // DEPLOY VESTING
+  const startTimestamp = 1688169600; // Sat Jul 01 2023 00:00:00 GMT+0000
   const Vesting = await hre.ethers.getContractFactory("TokenVesting");
-  const vesting = await Vesting.deploy(token.address);
+  const vesting = await Vesting.deploy(token.address, startTimestamp);
   await vesting.deployed();
   console.log(`Vesting deployed to ${vesting.address}`);
-  // TRANSFER_TOKENS
-  const amountForVesting = '29550000000000000';
-  await token.transfer(vesting.address, amountForVesting);
-  console.log(`Send: ${amountForVesting} tokens to: ${vesting.address}`);
+  // APPROVE_TOKENS
+  // const amountForVesting = '29550000000000000';
+  const amountForVesting = '450000000000000';
+  await token.approve(vesting.address, amountForVesting);
+  console.log(`Approved: ${amountForVesting} tokens to: ${vesting.address}`);
   //
   if (verify) {
     // PAUSE
@@ -57,10 +59,10 @@ async function main() {
     try {
       await hre.run(`verify:verify`, {
         address: vesting.address,
-        constructorArguments: [token.address],
+        constructorArguments: [token.address, startTimestamp],
       });
     } catch (error) {
-        console.error('error: ', error);
+      console.error('error: ', error);
     }
   }
 

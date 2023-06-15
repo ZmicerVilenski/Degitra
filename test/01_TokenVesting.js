@@ -13,6 +13,7 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
 
   let token, vesting, phases, admin, accounts, arrVestingPhases = [];
   const decimals = '00000000';
+  const startTimestamp = 1688169600; // Sat Jul 01 2023 00:00:00 GMT+0000
 
   async function deploy() {
     accounts = await ethers.getSigners();
@@ -20,7 +21,8 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
     const Token = await ethers.getContractFactory("Token");
     token = await Token.deploy("Digitra.com", 'DGTA');
     const Vesting = await ethers.getContractFactory("TokenVesting");
-    vesting = await Vesting.deploy(token.address);  
+    vesting = await Vesting.deploy(token.address, startTimestamp);
+    await token.approve(vesting.address, await token.totalSupply());
   }
 
   const loadVestingDataFromYaml = async () => {
@@ -35,12 +37,12 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
     for (let phase of phases) {
       i++;
       const phaseName = phase.round_name;
-      const amountTotal = phase.amountTotal + decimals, 
-            amountAfterCliff = phase.amountAfterCliff + decimals;
+      const amountTotal = phase.amountTotal + decimals,
+        amountAfterCliff = phase.amountAfterCliff + decimals;
       const tx = await vesting.createVestingSchedule(accounts[i].address, phase.durationDays, phase.cliffDays, amountTotal, amountAfterCliff);
       console.log(`      Phase (${phaseName}) tx.hash: `, tx.hash);
 
-      arrVestingPhases.push({beneficiary: accounts[i].address, durationDays: phase.durationDays, cliffDays: phase.cliffDays, amountTotal: amountTotal, amountAfterCliff: amountAfterCliff, phaseName: phaseName});
+      arrVestingPhases.push({ beneficiary: accounts[i].address, durationDays: phase.durationDays, cliffDays: phase.cliffDays, amountTotal: amountTotal, amountAfterCliff: amountAfterCliff, phaseName: phaseName });
 
     };
   };
@@ -49,18 +51,18 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
 
     it("Check Token address", async function () {
       await loadFixture(deploy);
-      expect(await vesting.tokenAddress()).to.equal(token.address);
+      // expect(await vesting.tokenAddress()).to.equal(token.address);
       const timestamp = await time.latest();
-      console.log('1.', new Date(timestamp*1000));
+      console.log('1.', new Date(timestamp * 1000));
     });
 
     it("Should get the right balances", async function () {
       const amount = '295500000' + decimals; // 295 500 000 Tokens with 8 decimals (300 - 4.5 mln)
       expect(await token.balanceOf(admin.address)).to.equal('300000000' + decimals);
       expect(await token.balanceOf(vesting.address)).to.equal(0);
-      await token.transfer(vesting.address, amount);
-      expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
-      expect(await token.balanceOf(vesting.address)).to.equal(amount);
+      // await token.transfer(vesting.address, amount);
+      // expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
+      // expect(await token.balanceOf(vesting.address)).to.equal(amount);
     });
 
   });
@@ -109,22 +111,17 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
     //   }
     //   // console.log(arrVestingPhases);
     // });
-    
-    it("getWithdrawableAmount", async function () {
-      const withAmount = await vesting.getWithdrawableAmount();     
-      console.log(`Withdrawable amount: ${withAmount}`) 
-    });
 
     it("Releasable amount befor vesting start", async function () {
       for (var i = 0; i < arrVestingPhases.length; i++) {
         const invest = arrVestingPhases[i].beneficiary;
-        expect(await vesting.computeReleasableAmount(invest)).to.equal(0);  
+        expect(await vesting.computeReleasableAmount(invest)).to.equal(0);
       }
     });
 
     it("Releasable amount after vesting start. Before 1st cliff.", async function () {
 
-      await time.increaseTo(1685232000); // Sun May 28 2023 00:00:00 GMT+0000
+      await time.increaseTo(startTimestamp);
 
       for (var i = 0; i < arrVestingPhases.length; i++) {
         const phase = arrVestingPhases[i];
@@ -132,7 +129,7 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
         if (!phase.cliffDays) {
           amount = phase.amountAfterCliff;
         }
-        expect(await vesting.computeReleasableAmount(phase.beneficiary)).to.equal(amount);  
+        expect(await vesting.computeReleasableAmount(phase.beneficiary)).to.equal(amount);
       }
 
     });
@@ -144,36 +141,36 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
     //     console.log(`Releasable amount for investor: ${invest} = ${releasAmount}`); 
     //   }
     // });
-    
+
   });
 
   describe("Claim", function () {
 
     it("Claim after cliff. 1 day.", async function () {
-      
+
       tableArr = [];
       for (var i = 0; i < arrVestingPhases.length; i++) {
         const phase = arrVestingPhases[i];
         let amount = 0;
         if (phase.cliffDays) {
-          await expect(vesting.connect(accounts[i+1]).claim()).to.be.revertedWith("TokenVesting: nothing to claim"); // i+1 because 0 is admin account
+          await expect(vesting.connect(accounts[i + 1]).claim()).to.be.revertedWith("TokenVesting: nothing to claim"); // i+1 because 0 is admin account
         } else {
           amount = phase.amountAfterCliff;
-          await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
+          await vesting.connect(accounts[i + 1]).claim(); // i+1 because 0 is admin account
         }
         const bal = await token.balanceOf(phase.beneficiary);
-        expect(bal).to.equal(amount);  
+        expect(bal).to.equal(amount);
 
         let balance = Number(bal) / 100000000;
         balance = balance.toFixed(0);
-        tableArr.push({phaseName: phase.phaseName, balance: balance});
+        tableArr.push({ phaseName: phase.phaseName, balance: balance });
       }
 
       // Claim from not investor account
       await expect(vesting.connect(accounts[9]).claim()).to.be.revertedWith("TokenVesting: only investors can claim");
 
       const timestamp = await time.latest();
-      console.log(new Date(timestamp*1000));
+      console.log(new Date(timestamp * 1000));
       console.table(tableArr);
 
     });
@@ -183,26 +180,26 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
       // 60 = 5 years
       for (var month = 1; month < 60; month++) {
 
-        await time.increase(30 * 86400); 
+        await time.increase(30 * 86400);
 
         tableArr = [];
         for (var i = 0; i < arrVestingPhases.length; i++) {
           const phase = arrVestingPhases[i];
           // try {          
-            if (phase.durationDays / 30 >= month) {
-              await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
-            }
+          if (phase.durationDays / 30 >= month) {
+            await vesting.connect(accounts[i + 1]).claim(); // i+1 because 0 is admin account
+          }
           // } catch (error) {
 
           // }
 
           let balance = Number(await token.balanceOf(phase.beneficiary)) / 100000000;
           balance = balance.toFixed(0);
-          tableArr.push({phaseName: phase.phaseName, balance: balance});  
+          tableArr.push({ phaseName: phase.phaseName, balance: balance });
         }
 
         const timestamp = await time.latest();
-        console.log(new Date(timestamp*1000));
+        console.log(new Date(timestamp * 1000));
         console.table(tableArr);
 
       }
@@ -215,5 +212,5 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
     });
 
   });
-    
+
 });

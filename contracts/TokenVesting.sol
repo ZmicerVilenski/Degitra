@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -8,14 +9,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @title TokenVesting
  */
 contract TokenVesting is Ownable, ReentrancyGuard {
-    // 1 slot
-    uint32 constant START = 1685232000; // Sun May 28 2023 00:00:00 GMT+0000. start time of the vesting period
+    IERC20 private immutable token;
+    uint32 private immutable start;
     uint16 constant SLICE_PERIOD_DAYS = 30; // duration of a slice period for the vesting in days
-    address public immutable tokenAddress;
-    // 2 slot
-    uint256 public vestingSchedulesTotalAmount;
 
-    // Takes 2 slots :(
     struct VestingSchedule {
         uint8 cliffDays;
         uint16 durationDays; // duration of the vesting period in days
@@ -38,10 +35,12 @@ contract TokenVesting is Ownable, ReentrancyGuard {
     /**
      * @dev Creates a vesting contract.
      * @param _token address of the ERC20 token contract
+     * @param _start start timestamp of vesting
      */
-    constructor(address _token) {
+    constructor(address _token, uint32 _start) {
         require(_token != address(0x0));
-        tokenAddress = _token;
+        token = IERC20(_token);
+        start = _start;
     }
 
     /**
@@ -60,7 +59,7 @@ contract TokenVesting is Ownable, ReentrancyGuard {
         uint112 _amountAfterCliff
     ) external onlyOwner {
         require(
-            START > uint32(block.timestamp),
+            start > uint32(block.timestamp),
             "TokenVesting: forbidden to create a schedule after the start of vesting"
         );
         require(_durationDays > 0, "TokenVesting: duration must be > 0");
@@ -69,10 +68,6 @@ contract TokenVesting is Ownable, ReentrancyGuard {
             _durationDays >= uint16(_cliffDays),
             "TokenVesting: duration must be >= cliff"
         );
-        // require(
-        //     _amountTotal >= _amountAfterCliff,
-        //     "TokenVesting: total amount must be >= amount after cliff"
-        // );
         vestingSchedules[_beneficiary] = VestingSchedule(
             _cliffDays,
             _durationDays,
@@ -80,9 +75,18 @@ contract TokenVesting is Ownable, ReentrancyGuard {
             0,
             _amountAfterCliff
         );
-        vestingSchedulesTotalAmount += (_amountTotal + _amountAfterCliff);
 
-        emit ScheduleCreated(_beneficiary, _durationDays, _amountTotal);
+        token.transferFrom(
+            msg.sender,
+            address(this),
+            _amountTotal + _amountAfterCliff
+        );
+
+        emit ScheduleCreated(
+            _beneficiary,
+            _durationDays,
+            _amountTotal + _amountAfterCliff
+        );
     }
 
     /**
@@ -101,8 +105,7 @@ contract TokenVesting is Ownable, ReentrancyGuard {
         vestingSchedule.released += (uint112(vestedAmount) -
             vestingSchedule.amountAfterCliff);
         vestingSchedule.amountAfterCliff = 0;
-        vestingSchedulesTotalAmount -= vestedAmount;
-        _safeTransfer(tokenAddress, msg.sender, vestedAmount);
+        token.transfer(msg.sender, vestedAmount);
 
         emit Clamed(msg.sender, vestedAmount);
     }
@@ -128,16 +131,6 @@ contract TokenVesting is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Returns the amount of tokens that can be withdrawn by the owner.
-     * @return the amount of tokens
-     */
-    function getWithdrawableAmount() external view returns (uint256) {
-        return
-            _balanceOf(tokenAddress, address(this)) -
-            vestingSchedulesTotalAmount;
-    }
-
-    /**
      * @dev Computes the releasable amount of tokens for a vesting schedule.
      * @return the amount of releasable tokens
      */
@@ -145,15 +138,15 @@ contract TokenVesting is Ownable, ReentrancyGuard {
         VestingSchedule memory vestingSchedule
     ) internal view returns (uint256) {
         // If the current time is before the cliff, no tokens are releasable.
-        uint32 cliffDuration = (uint32(vestingSchedule.cliffDays) * 86400);
-        if (uint32(block.timestamp) < START + cliffDuration) {
+        uint32 cliffDuration = (uint32(vestingSchedule.cliffDays) * 1 days);
+        if (uint32(block.timestamp) < start + cliffDuration) {
             return 0;
         }
         // If the current time is after the vesting period, all tokens are releasable,
         // minus the amount already released.
         else if (
             uint32(block.timestamp) >=
-            START + (uint32(vestingSchedule.durationDays) * 86400)
+            start + (uint32(vestingSchedule.durationDays) * 1 days)
         ) {
             return
                 uint256(
@@ -165,44 +158,18 @@ contract TokenVesting is Ownable, ReentrancyGuard {
         // Otherwise, some tokens are releasable.
         else {
             uint32 vestedSlicePeriods = (uint32(block.timestamp) -
-                START -
-                cliffDuration) / (uint32(SLICE_PERIOD_DAYS) * 86400); // Compute the number of full vesting periods that have elapsed.
+                start -
+                cliffDuration) / (uint32(SLICE_PERIOD_DAYS) * 1 days); // Compute the number of full vesting periods that have elapsed.
             uint32 vestedSeconds = vestedSlicePeriods *
-                (uint32(SLICE_PERIOD_DAYS) * 86400);
+                (uint32(SLICE_PERIOD_DAYS) * 1 days);
             uint256 vestedAmount = (vestingSchedule.amountTotal *
                 uint256(vestedSeconds)) /
                 ((uint256(vestingSchedule.durationDays) -
-                    uint256(vestingSchedule.cliffDays)) * 86400); // Compute the amount of tokens that are vested.
+                    uint256(vestingSchedule.cliffDays)) * 1 days); // Compute the amount of tokens that are vested.
             return
                 vestedAmount +
                 uint256(vestingSchedule.amountAfterCliff) -
                 uint256(vestingSchedule.released); // Subtract the amount already released and return.
         }
-    }
-
-    function _safeTransfer(
-        address _token,
-        address _to,
-        uint256 _value
-    ) internal {
-        // Transfer selector `bytes4(keccak256(bytes('transfer(address,uint256)')))` should be equal to 0xa9059cbb
-        (bool success, bytes memory data) = _token.call(
-            abi.encodeWithSelector(0xa9059cbb, _to, _value)
-        );
-        require(
-            success && (data.length == 0 || abi.decode(data, (bool))),
-            "TRANSFER_FAILED"
-        );
-    }
-
-    function _balanceOf(
-        address _token,
-        address _account
-    ) internal view returns (uint) {
-        // balanceOf selector `bytes4(keccak256('balanceOf(address)'))` should be equal to 0x70a08231
-        (, bytes memory data) = _token.staticcall(
-            abi.encodeWithSelector(0x70a08231, _account)
-        );
-        return abi.decode(data, (uint));
     }
 }

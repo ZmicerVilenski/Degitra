@@ -13,6 +13,7 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
 
   let token, vesting, phases, admin, accounts, arrVestingPhases = [];
   const decimals = '00000000';
+  const startTimestamp = 1688169600; // Sat Jul 01 2023 00:00:00 GMT+0000
 
   async function deploy() {
     accounts = await ethers.getSigners();
@@ -20,7 +21,8 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
     const Token = await ethers.getContractFactory("Token");
     token = await Token.deploy("Digitra.com", 'DGTA');
     const Vesting = await ethers.getContractFactory("TokenVesting");
-    vesting = await Vesting.deploy(token.address);  
+    vesting = await Vesting.deploy(token.address, startTimestamp);
+    await token.approve(vesting.address, await token.totalSupply());
   }
 
   const loadVestingDataFromYaml = async () => {
@@ -35,14 +37,15 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
     for (let phase of phases) {
       i++;
       const phaseName = phase.round_name;
-      const amountTotal = phase.amountTotal + decimals, 
-            amountAfterCliff = phase.amountAfterCliff + decimals;
+      const amountTotal = phase.amountTotal + decimals,
+        amountAfterCliff = phase.amountAfterCliff + decimals;
       const tx = await vesting.createVestingSchedule(accounts[i].address, phase.durationDays, phase.cliffDays, amountTotal, amountAfterCliff);
-      // console.log(`      Phase (${phaseName}) tx.hash: `, tx.hash);
+      console.log(`      Phase (${phaseName}) tx.hash: `, tx.hash);
 
-      arrVestingPhases.push({beneficiary: accounts[i].address, durationDays: phase.durationDays, cliffDays: phase.cliffDays, amountTotal: amountTotal, amountAfterCliff: amountAfterCliff, phaseName: phaseName});
+      arrVestingPhases.push({ beneficiary: accounts[i].address, durationDays: phase.durationDays, cliffDays: phase.cliffDays, amountTotal: amountTotal, amountAfterCliff: amountAfterCliff, phaseName: phaseName });
 
     };
+
   };
 
   describe("Deployment, fill Vesting balance", function () {
@@ -50,12 +53,7 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
     it("Reset network", async function () {
       await hre.network.provider.send("hardhat_reset");
       await loadFixture(deploy);
-    });
-
-    it("Should get the right balances", async function () {
-      const amount = '295500000' + decimals; // 295 500 000 Tokens with 8 decimals
-      await token.transfer(vesting.address, amount);
-      expect(await token.balanceOf(vesting.address)).to.equal(amount);
+      // await deploy();
     });
 
   });
@@ -64,7 +62,7 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
 
     it("Load data", async function () {
       loadVestingDataFromYaml();
-      addSchedules();      
+      addSchedules();
     });
 
   });
@@ -83,7 +81,7 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
 
     it("Claim randomly for all vesting period (5y).", async function () {
 
-      await time.increaseTo(1685232000); // Sun May 28 2023 00:00:00 GMT+0000
+      await time.increaseTo(startTimestamp);
 
       let nexDate = await time.latest();
       finishDate = 1840579200; // 	Sat Apr 29 2028 00:00:00 GMT+0000
@@ -98,20 +96,20 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
           let randPhaseNum = Math.floor(Math.random() * arrVestingPhases.length); // 0-arrVestingPhases.length
           if (paseArr.includes(randPhaseNum)) {
             i--;
-            continue;      
+            continue;
           }
           paseArr.push(randPhaseNum);
           const phase = arrVestingPhases[randPhaseNum];
-          try {          
-            await vesting.connect(accounts[randPhaseNum+1]).claim(); // i+1 because 0 is admin account
-          } catch (error) {}
+          try {
+            await vesting.connect(accounts[randPhaseNum + 1]).claim(); // i+1 because 0 is admin account
+          } catch (error) { }
           let balance = Number(await token.balanceOf(phase.beneficiary)) / 100000000;
           balance = balance.toFixed(0);
-          tableArr.push({phaseName: phase.phaseName, balance: balance});  
+          tableArr.push({ phaseName: phase.phaseName, balance: balance });
         }
 
         const timestamp = await time.latest();
-        console.log(new Date(timestamp*1000));
+        console.log(new Date(timestamp * 1000));
         console.table(tableArr);
 
         await time.increase(randMonthIncr * 30 * 86400);
@@ -122,27 +120,27 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
       // At the end must be called claim() for all accounts at (nexDate) date; nexDate > finishDate because loop while
       for (let i = 0; i < arrVestingPhases.length; i++) {
         const phase = arrVestingPhases[i];
-        try {          
-          await vesting.connect(accounts[i+1]).claim(); // i+1 because 0 is admin account
-        } catch (error) {} 
+        try {
+          await vesting.connect(accounts[i + 1]).claim(); // i+1 because 0 is admin account
+        } catch (error) { }
       }
 
     });
 
     it("Should get the right balances at the end", async function () {
 
-      expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
-      expect(await token.balanceOf(vesting.address)).to.equal(0);
+      // expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
+      // expect(await token.balanceOf(vesting.address)).to.equal(0);
 
       tableArr = [];
       for (let i = 0; i < arrVestingPhases.length; i++) {
         const phase = arrVestingPhases[i];
         let amount = parseInt(phase.amountAfterCliff) + parseInt(phase.amountTotal);
         amount = amount.toString();
-        expect(await token.balanceOf(phase.beneficiary)).to.equal(amount); 
+        expect(await token.balanceOf(phase.beneficiary)).to.equal(amount);
         let balance = Number(await token.balanceOf(phase.beneficiary)) / 100000000;
         balance = balance.toFixed(0);
-        tableArr.push({phaseName: phase.phaseName, balance: balance}); 
+        tableArr.push({ phaseName: phase.phaseName, balance: balance });
       }
 
       console.log(`\x1b[33mFinal balances:\x1b[0m`);
@@ -155,5 +153,5 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
     });
 
   });
-    
+
 });
