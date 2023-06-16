@@ -69,16 +69,6 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
 
   describe("Claim", function () {
 
-    // accounts[1] // - Long-term reserve     - cliffDays: 30 - amountTotal: "74 668 025" - amountAfterCliff: "2 196 118" - end date: 04.28.2026
-    // accounts[2] // - Private Sale (Seed)   - cliffDays: 0  - amountTotal: " 6 428 571" - amountAfterCliff: "  714 286" - end date: 04.28.2025
-    // accounts[3] // - Public Sale (Up to)   - cliffDays: 0  - amountTotal: " 3 600 000" - amountAfterCliff: "  900 000" - end date: 09.28.2023
-    // accounts[4] // - New Clients Incentive - cliffDays: 0  - amountTotal: "27 710 000" - amountAfterCliff: "4 890 000" - end date: 04.28.2025
-    // accounts[5] // - Trade-to-Earn Airdrop - cliffDays: 0  - amountTotal: "23 114 400" - amountAfterCliff: "5 778 600" - end date: 04.28.2025
-    // accounts[6] // - Marketing & Liquidity - cliffDays: 0  - amountTotal: "51 000 000" - amountAfterCliff: "9 000 000" - end date: 04.28.2025
-    // accounts[7] // - Team incentives       - cliffDays: 30 - amountTotal: "58 983 051" - amountAfterCliff: "1 016 949" - end date: 04.28.2028
-    // accounts[8] // - Ecosystem Growth      - cliffDays: 30 - amountTotal: "28 695 652" - amountAfterCliff: "1 304 348" - end date: 04.28.2025
-    // accounts[9] // - Not investor
-
     it("Claim randomly for all vesting period (5y).", async function () {
 
       await time.increaseTo(startTimestamp);
@@ -129,8 +119,8 @@ describe("\n\n\n -= 2. Digitra Token & Vesting. Testing a case where investors w
 
     it("Should get the right balances at the end", async function () {
 
-      // expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
-      // expect(await token.balanceOf(vesting.address)).to.equal(0);
+      expect(await token.balanceOf(admin.address)).to.equal('4500000' + decimals);
+      expect(await token.balanceOf(vesting.address)).to.equal(0);
 
       tableArr = [];
       for (let i = 0; i < arrVestingPhases.length; i++) {

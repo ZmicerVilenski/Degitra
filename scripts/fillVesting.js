@@ -6,20 +6,15 @@ const BigDecimal = require('js-big-decimal');
 const vestingAddress = process.env.VESTING_ADDRESS;
 if (!vestingAddress || vestingAddress === '') throw new Error('Vesting address missing.');
 
+const decimals = '00000000';
 let accounts, vesting, token, phases;
 
 
 const loadContracts = async () => {
-
     accounts = await ethers.provider.listAccounts();
     vesting = await hre.ethers.getContractAt("TokenVesting", vestingAddress);
-    // const tokenAddress = await vesting.tokenAddress();
-    // token = await hre.ethers.getContractAt("Token", tokenAddress);
-
     console.log(`Account: \x1b[36m${accounts[0]}\x1b[0m`);
-    // console.log(`Token address: \x1b[36m${tokenAddress}\x1b[0m`);
     console.log(`Vesting address: \x1b[36m${vestingAddress}\x1b[0m`);
-
 };
 
 
@@ -43,8 +38,8 @@ const addSchedules = async () => {
 
         const phaseName = phase.round_name;
         console.log(`\x1b[35m=== Processing phase: (${phaseName}). ===\x1b[0m`);
-        const amountTotal = phase.amountTotal,
-            amountAfterCliff = phase.amountAfterCliff;
+        const amountTotal = phase.amountTotal + decimals,
+            amountAfterCliff = phase.amountAfterCliff + decimals;
 
         if (await checkPhaseExistence(phase.beneficiary)) {
             console.log(`    Vesting Phase (${phaseName}) exist`);
@@ -60,7 +55,7 @@ const addSchedules = async () => {
 
 };
 
-
+/// @notice After audit tokens transfering durinf vesting phase created.
 // const transferTokensToVestingBalance = async () => {
 
 //     let ownerBalance = await token.balanceOf(accounts[0]);

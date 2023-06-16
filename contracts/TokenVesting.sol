@@ -45,6 +45,14 @@ contract TokenVesting is Ownable, ReentrancyGuard {
 
     /**
      * @notice Creates a new vesting schedule for a beneficiary.
+     * @dev _durationDays has 16bits long which could potentially lead to overflow.
+     * However, this will only happen if specify a very large number of days, more than 49 711
+     * which is more than 139 years. Vesting is designed for a maximum period of 5 years.
+     * The threat of overflow is theoretical.
+     * @dev It is possible to create flat sloped vesting schedules for long vesting periods with low amounts.
+     * There are some border scenarios where the slope calculation outputs zero.
+     * But in this vesting it is not planned to use small amounts. All phases are calculated in millions of tokens.
+     * But even a single token with 8 decimals will not result in an error.
      * @param _beneficiary address of the beneficiary to whom vested tokens are transferred
      * @param _durationDays duration in days of the period in which the tokens will vest
      * @param _cliffDays duration in days of cliff

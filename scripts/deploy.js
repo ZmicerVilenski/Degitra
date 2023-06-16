@@ -31,24 +31,17 @@ async function main() {
       console.error('error: ', error);
     }
   }
-  // // TRANSFER_TOKENS
-  // const newOwner = process.env.NEW_OWNER;
-  // const amountForOwner = '450000000000000';
-  // await token.transfer(newOwner, amountForOwner);
-  // console.log(`Send: ${amountForOwner} tokens to: ${newOwner}`);
 
 
   // DEPLOY VESTING
-  const startTimestamp = 1688169600; // Sat Jul 01 2023 00:00:00 GMT+0000
+  const startTimestamp = 1688169600; // Sat Jul 01 2023 00:00:00 GMT+0000 /// @dev will be changed
   const Vesting = await hre.ethers.getContractFactory("TokenVesting");
   const vesting = await Vesting.deploy(token.address, startTimestamp);
   await vesting.deployed();
   console.log(`Vesting deployed to ${vesting.address}`);
   // APPROVE_TOKENS
-  // const amountForVesting = '29550000000000000';
-  const amountForVesting = '450000000000000';
-  await token.approve(vesting.address, amountForVesting);
-  console.log(`Approved: ${amountForVesting} tokens to: ${vesting.address}`);
+  await token.approve(vesting.address, await token.totalSupply());
+  console.log(`Approved: ${await token.totalSupply()} tokens to: ${vesting.address}`);
   //
   if (verify) {
     // PAUSE
