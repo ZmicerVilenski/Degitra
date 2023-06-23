@@ -34,7 +34,7 @@ async function main() {
 
 
   // DEPLOY VESTING
-  const startTimestamp = 1688169600; // Sat Jul 01 2023 00:00:00 GMT+0000 /// @dev will be changed
+  const startTimestamp = 1687564800; // Sat Jun 24 2023 00:00:00 GMT+0000
   const Vesting = await hre.ethers.getContractFactory("TokenVesting");
   const vesting = await Vesting.deploy(token.address, startTimestamp);
   await vesting.deployed();

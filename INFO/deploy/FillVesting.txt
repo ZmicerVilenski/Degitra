@@ -1,0 +1,10 @@
+Account: 0x7Ae7DA85623685Cb682aD0a8414BED7Af8D19267
+Vesting address: 0x2eC543D8e43b746A5d7FaDDc4c5CC913d8B441ca
+Rounds amount: 7
+    Vesting Phase (Long-term reserve) initialization tx.hash: 0xf01e786dcd4a340f92fd6be29f4a7eb777faec785a58ab2faea0c03edf2a2274. Gas: 115601
+    Vesting Phase (Private Sale (Seed)) initialization tx.hash: 0x6e9534313eef4486057f970e739053f59d04db58d5958c08b424dc80c033eba6. Gas: 115589
+    Vesting Phase (New Clients Incentive) initialization tx.hash: 0x6fdfc701f8f612fccd644812ef164e7c3d6dd6fa184a175265bc52d12a97ef98. Gas: 98501
+    Vesting Phase (Trade-to-Earn Airdrop) initialization tx.hash: 0x7d5729fe3d17a9fb1321a3e7e18fc5bd43017a05b7325c4fdd32ea23a051ac7a. Gas: 98501
+    Vesting Phase (Marketing & Liquidity) initialization tx.hash: 0xf267ba5318c9644247da557771f6a0d69fd4e0965abf07c18ffa888f6bbdcf90. Gas: 98501
+    Vesting Phase (Team incentives) initialization tx.hash: 0xd172084b3dd454bab88aa8f4f7d235fd2c59ec1044740c1caf4cd694f5a7117d. Gas: 98501
+    Vesting Phase (Ecosystem Growth) initialization tx.hash: 0xc714764aff8d95d8a1d09ca25a9f28bd9a39384251023118d151d1c07dbb83ee. Gas: 98501

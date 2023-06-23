@@ -1,0 +1,8 @@
+Token deployed to 0x3590801eCFDF8C2f5e7a4fD171c2E3AF964F8b0D
+Successfully verified contract Token on Etherscan.
+https://etherscan.io/address/0x3590801eCFDF8C2f5e7a4fD171c2E3AF964F8b0D#code
+
+Vesting deployed to 0x2eC543D8e43b746A5d7FaDDc4c5CC913d8B441ca
+Approved: 30000000000000000 tokens to: 0x2eC543D8e43b746A5d7FaDDc4c5CC913d8B441ca
+Successfully verified contract TokenVesting on Etherscan.
+https://etherscan.io/address/0x2eC543D8e43b746A5d7FaDDc4c5CC913d8B441ca#code

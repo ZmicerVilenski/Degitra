@@ -13,7 +13,7 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
 
   let token, vesting, phases, admin, accounts, arrVestingPhases = [];
   const decimals = '00000000';
-  const startTimestamp = 1688169600; // Sat Jul 01 2023 00:00:00 GMT+0000
+  const startTimestamp = 1687564800; // Sat Jun 24 2023 00:00:00 GMT+0000
 
   async function deploy() {
     accounts = await ethers.getSigners();
@@ -183,7 +183,9 @@ describe("\n\n\n -= 1. Digitra Token & Vesting. Testing a case where investors w
         }
 
         const timestamp = await time.latest();
-        console.log(new Date(timestamp * 1000));
+        const date = new Date(timestamp * 1000)
+        const options = { weekday: 'short', year: 'numeric', month: 'numeric', day: 'numeric' };
+        console.log(date.toLocaleDateString("en-US", options));
         console.table(tableArr);
 
       }
